@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OnboardingApi } from '../services/api';
 
 export type AddictionType =
@@ -78,6 +79,8 @@ const initialState: OnboardingState = {
 type OnboardingContextValue = {
   state: OnboardingState;
   isLoading: boolean;
+  isHydrating: boolean;
+  isOnboardingComplete: boolean;
   error: string | null;
   setDisplayName: (v: string) => void;
   setAge: (v: string) => void;
@@ -93,14 +96,34 @@ type OnboardingContextValue = {
   createUser: (displayName: string, age?: number) => Promise<void>;
   saveToBackend: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
+  markOnboardingComplete: () => Promise<void>;
 };
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
+const ONBOARDING_COMPLETE_KEY = 'onboarding_complete';
+
 export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<OnboardingState>(initialState);
   const [isLoading, setIsLoading] = useState(false);
+  const [isHydrating, setIsHydrating] = useState(true);
+  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadOnboardingStatus = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
+        setIsOnboardingComplete(stored === 'true');
+      } catch (err) {
+        console.error('Failed to load onboarding status:', err);
+      } finally {
+        setIsHydrating(false);
+      }
+    };
+
+    loadOnboardingStatus();
+  }, []);
 
   const setDisplayName = useCallback((v: string) => {
     setState((s) => ({ ...s, displayName: v }));
@@ -144,6 +167,10 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const reset = useCallback(() => {
     setState(initialState);
+    setIsOnboardingComplete(false);
+    AsyncStorage.removeItem(ONBOARDING_COMPLETE_KEY).catch((err) => {
+      console.error('Failed to reset onboarding status:', err);
+    });
   }, []);
 
   const createUser = useCallback(
@@ -215,9 +242,20 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     }
   }, [state.userId]);
 
+  const markOnboardingComplete = useCallback(async () => {
+    setIsOnboardingComplete(true);
+    try {
+      await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+    } catch (err) {
+      console.error('Failed to persist onboarding status:', err);
+    }
+  }, []);
+
   const value: OnboardingContextValue = {
     state,
     isLoading,
+    isHydrating,
+    isOnboardingComplete,
     error,
     setDisplayName,
     setAge,
@@ -233,6 +271,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     createUser,
     saveToBackend,
     completeOnboarding,
+    markOnboardingComplete,
   };
 
   return (

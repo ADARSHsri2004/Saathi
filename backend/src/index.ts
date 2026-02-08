@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Saathi Backend Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Saathi Backend Server running on http://192.168.1.2:${PORT}`);
   console.log(`📝 Environment: ${NODE_ENV}`);
   console.log(`📚 API Documentation:`);
   console.log(`   - POST   /api/users - Create new user`);
