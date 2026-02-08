@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  displayName       String
+  age               Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  onboarding        Onboarding?
+}
+
+model Onboarding {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Type of addiction
+  addictionTypes          String[] // Array of addiction type enums as strings
+  
+  // When it happens
+  whenItHappens           String[] // Array of when options as strings
+  
+  // How it makes you feel
+  feelAfter               String?  // Single selection
+  
+  // Patterns
+  frequency               String?  // Single selection
+  moneySpent              String?
+  impactAreas             String[] // Array of impact areas
+  
+  // Intention & Duration
+  intention               String?  // Single selection: 'reduce', 'pause', 'just_understand'
+  duration                String?  // Single selection: '7_days', '14_days', '30_days', 'not_sure'
+  
+  completedAt             DateTime?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}

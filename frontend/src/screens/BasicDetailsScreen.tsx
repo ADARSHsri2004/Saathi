@@ -28,7 +28,7 @@ type Nav = NativeStackNavigationProp<OnboardingStackParamList, 'BasicDetails'>;
 export function BasicDetailsScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const { state, setDisplayName, setAge } = useOnboarding();
+  const { state, setDisplayName, setAge, createUser, isLoading, error } = useOnboarding();
   const photoOpacity = useSharedValue(0);
   const nameOpacity = useSharedValue(0);
   const ageOpacity = useSharedValue(0);
@@ -47,6 +47,17 @@ export function BasicDetailsScreen() {
   const ctaStyle = useAnimatedStyle(() => ({ opacity: ctaOpacity.value }));
 
   const canProceed = state.displayName.trim().length > 0;
+
+  const handleNext = async () => {
+    try {
+      const age = state.age ? parseInt(state.age) : undefined;
+      await createUser(state.displayName, age);
+      navigation.navigate('AwarenessContext');
+    } catch (err) {
+      console.error('Failed to create user:', err);
+      // Error message is available in the context via error state
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -103,8 +114,8 @@ export function BasicDetailsScreen() {
         <Animated.View style={[styles.ctaWrap, ctaStyle]}>
           <PrimaryButton
             label="Next"
-            onPress={() => navigation.navigate('AwarenessContext')}
-            disabled={!canProceed}
+            onPress={handleNext}
+            disabled={!canProceed || isLoading}
           />
         </Animated.View>
       </ScrollView>

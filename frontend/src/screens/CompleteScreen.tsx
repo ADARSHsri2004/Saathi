@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
   withDelay,
 } from 'react-native-reanimated';
+import { useOnboarding } from '../context/OnboardingContext';
 import { colors, typography, spacing } from '../theme';
 
 /**
@@ -14,8 +15,23 @@ import { colors, typography, spacing } from '../theme';
  */
 export function CompleteScreen() {
   const insets = useSafeAreaInsets();
+  const { completeOnboarding, saveToBackend, isLoading } = useOnboarding();
   const opacity = useSharedValue(0);
   const scale = useSharedValue(0.95);
+
+  useEffect(() => {
+    // Save to backend and complete onboarding when screen mounts
+    const handleCompletion = async () => {
+      try {
+        await saveToBackend();
+        await completeOnboarding();
+      } catch (err) {
+        console.error('Failed to complete onboarding:', err);
+      }
+    };
+
+    handleCompletion();
+  }, []);
 
   useEffect(() => {
     opacity.value = withDelay(200, withTiming(1, { duration: 600 }));

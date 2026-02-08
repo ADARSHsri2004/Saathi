@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { OnboardingApi } from '../services/api';
 
 export type AddictionType =
   | 'social_media'
@@ -47,6 +48,7 @@ export type Intention = 'reduce' | 'pause' | 'just_understand';
 export type Duration = '7_days' | '14_days' | '30_days' | 'not_sure';
 
 export interface OnboardingState {
+  userId: string;
   displayName: string;
   age: string;
   addictionTypes: AddictionType[];
@@ -60,6 +62,7 @@ export interface OnboardingState {
 }
 
 const initialState: OnboardingState = {
+  userId: '',
   displayName: '',
   age: '',
   addictionTypes: [],
@@ -74,6 +77,8 @@ const initialState: OnboardingState = {
 
 type OnboardingContextValue = {
   state: OnboardingState;
+  isLoading: boolean;
+  error: string | null;
   setDisplayName: (v: string) => void;
   setAge: (v: string) => void;
   setAddictionTypes: (v: AddictionType[] | ((prev: AddictionType[]) => AddictionType[])) => void;
@@ -85,49 +90,135 @@ type OnboardingContextValue = {
   setIntention: (v: Intention | null) => void;
   setDuration: (v: Duration | null) => void;
   reset: () => void;
+  createUser: (displayName: string, age?: number) => Promise<void>;
+  saveToBackend: () => Promise<void>;
+  completeOnboarding: () => Promise<void>;
 };
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
 export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<OnboardingState>(initialState);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const setDisplayName = useCallback((v: string) => {
     setState((s) => ({ ...s, displayName: v }));
   }, []);
+
   const setAge = useCallback((v: string) => {
     setState((s) => ({ ...s, age: v }));
   }, []);
+
   const setAddictionTypes = useCallback((v: AddictionType[] | ((prev: AddictionType[]) => AddictionType[])) => {
     setState((s) => ({ ...s, addictionTypes: typeof v === 'function' ? v(s.addictionTypes) : v }));
   }, []);
+
   const setWhenItHappens = useCallback((v: WhenItHappens[] | ((prev: WhenItHappens[]) => WhenItHappens[])) => {
     setState((s) => ({ ...s, whenItHappens: typeof v === 'function' ? v(s.whenItHappens) : v }));
   }, []);
+
   const setFeelAfter = useCallback((v: FeelAfter | null) => {
     setState((s) => ({ ...s, feelAfter: v }));
   }, []);
+
   const setFrequency = useCallback((v: Frequency | null) => {
     setState((s) => ({ ...s, frequency: v }));
   }, []);
+
   const setMoneySpent = useCallback((v: string) => {
     setState((s) => ({ ...s, moneySpent: v }));
   }, []);
+
   const setImpactAreas = useCallback((v: ImpactArea[] | ((prev: ImpactArea[]) => ImpactArea[])) => {
     setState((s) => ({ ...s, impactAreas: typeof v === 'function' ? v(s.impactAreas) : v }));
   }, []);
+
   const setIntention = useCallback((v: Intention | null) => {
     setState((s) => ({ ...s, intention: v }));
   }, []);
+
   const setDuration = useCallback((v: Duration | null) => {
     setState((s) => ({ ...s, duration: v }));
   }, []);
+
   const reset = useCallback(() => {
     setState(initialState);
   }, []);
 
+  const createUser = useCallback(
+    async (displayName: string, age?: number) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await OnboardingApi.createUser(displayName, age);
+        setState((s) => ({
+          ...s,
+          userId: response.id,
+          displayName: response.displayName,
+          age: response.age ? response.age.toString() : '',
+        }));
+      } catch (err: any) {
+        const errorMessage = err.message || 'Failed to create user';
+        setError(errorMessage);
+        console.error('Create user error:', err);
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  const saveToBackend = useCallback(async () => {
+    if (!state.userId) {
+      throw new Error('User ID is not set. Create user first.');
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      await OnboardingApi.updateOnboarding(state.userId, {
+        addictionTypes: state.addictionTypes,
+        whenItHappens: state.whenItHappens,
+        feelAfter: state.feelAfter,
+        frequency: state.frequency,
+        moneySpent: state.moneySpent || undefined,
+        impactAreas: state.impactAreas,
+        intention: state.intention,
+        duration: state.duration,
+      });
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to save to backend';
+      setError(errorMessage);
+      console.error('Save to backend error:', err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [state]);
+
+  const completeOnboarding = useCallback(async () => {
+    if (!state.userId) {
+      throw new Error('User ID is not set.');
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      await OnboardingApi.completeOnboarding(state.userId);
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to complete onboarding';
+      setError(errorMessage);
+      console.error('Complete onboarding error:', err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [state.userId]);
+
   const value: OnboardingContextValue = {
     state,
+    isLoading,
+    error,
     setDisplayName,
     setAge,
     setAddictionTypes,
@@ -139,6 +230,9 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     setIntention,
     setDuration,
     reset,
+    createUser,
+    saveToBackend,
+    completeOnboarding,
   };
 
   return (

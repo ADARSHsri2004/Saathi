@@ -15,13 +15,12 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
-    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@/*": [
         "src/*"
       ]
-    }
+    },
   },
   "exclude": [
     "node_modules",
