@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Saathi",
+    "slug": "saathi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#1a1a1a"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.saathi.app"
+    },
+    "android": {
+      "backgroundColor": "#1a1a1a",
+      "package": "com.saathi.app"
+    },
+    "scheme": "saathi",
+    "extra": {
+      "eas": {
+        "projectId": "699753ab-b803-42bb-aa07-7967beeb7557"
+      }
+    }
+  }
+}
