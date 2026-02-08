@@ -18,25 +18,30 @@ export const lineHeights = {
 export const typography: Record<string, TextStyle> = {
   hero: {
     fontSize: fontSizes.xxl,
-    fontWeight: '300',
-    letterSpacing: 0.5,
+    fontWeight: '600',        // Stronger for light theme
+    letterSpacing: 0.3,
     lineHeight: fontSizes.xxl * lineHeights.tight,
   },
   title: {
     fontSize: fontSizes.xl,
-    fontWeight: '400',
-    letterSpacing: 0.3,
+    fontWeight: '600',        // Increased for better contrast
+    letterSpacing: 0.2,
     lineHeight: fontSizes.xl * lineHeights.tight,
   },
   titleSmall: {
     fontSize: fontSizes.lg,
-    fontWeight: '500',
-    letterSpacing: 0.2,
+    fontWeight: '600',
+    letterSpacing: 0.15,
     lineHeight: fontSizes.lg * lineHeights.normal,
   },
   body: {
     fontSize: fontSizes.md,
     fontWeight: '400',
+    lineHeight: fontSizes.md * lineHeights.relaxed,
+  },
+  bodyMedium: {
+    fontSize: fontSizes.md,
+    fontWeight: '500',        // Medium weight option
     lineHeight: fontSizes.md * lineHeights.relaxed,
   },
   bodySmall: {
@@ -52,11 +57,11 @@ export const typography: Record<string, TextStyle> = {
   button: {
     fontSize: fontSizes.md,
     fontWeight: '600',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   label: {
     fontSize: fontSizes.sm,
-    fontWeight: '500',
-    letterSpacing: 0.2,
+    fontWeight: '600',        // Stronger for labels
+    letterSpacing: 0.3,
   },
 };
