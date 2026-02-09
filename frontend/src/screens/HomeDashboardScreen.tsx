@@ -6,6 +6,8 @@ import {
   ScrollView,
   Pressable,
   Platform,
+  Modal,
+  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -23,6 +25,15 @@ import { colors, spacing, typography, borderRadius } from '../theme';
 const HEADER_HEIGHT = 56;
 const FOOTER_HEIGHT = 86;
 
+const MONEY_VS_LIFE_ROWS = [
+  { period: '1 Week', money: '₹ 336', life: '0d 5h 8m' },
+  { period: '1 Month', money: '₹ 1,440', life: '0d 22h 0m' },
+  { period: '1 Year', money: '₹ 17,520', life: '11d 3h 40m' },
+  { period: '5 Years', money: '₹ 87,600', life: '1M 25d 18h' },
+  { period: '10 Years', money: '₹ 175,200', life: '3M 21d 12h' },
+  { period: '20 Years', money: '₹ 350,400', life: '7M 13d 1h' },
+];
+
 export function HomeDashboardScreen() {
   const insets = useSafeAreaInsets();
   const [headerElevated, setHeaderElevated] = useState(false);
@@ -38,6 +49,11 @@ export function HomeDashboardScreen() {
   const impactTranslate = useSharedValue(12);
   const chartOpacity = useSharedValue(0);
   const chartTranslate = useSharedValue(12);
+  const moneyVsLifeOpacity = useSharedValue(0);
+  const moneyVsLifeTranslate = useSharedValue(12);
+  const tipsOpacity = useSharedValue(0);
+  const tipsTranslate = useSharedValue(12);
+  const [tipsModalVisible, setTipsModalVisible] = useState(false);
 
   useEffect(() => {
     dailyOpacity.value = withDelay(120, withTiming(1, { duration: 500 }));
@@ -46,8 +62,12 @@ export function HomeDashboardScreen() {
     metricsTranslate.value = withDelay(260, withTiming(0, { duration: 500 }));
     impactOpacity.value = withDelay(420, withTiming(1, { duration: 500 }));
     impactTranslate.value = withDelay(420, withTiming(0, { duration: 500 }));
-    chartOpacity.value = withDelay(560, withTiming(1, { duration: 500 }));
-    chartTranslate.value = withDelay(560, withTiming(0, { duration: 500 }));
+    moneyVsLifeOpacity.value = withDelay(560, withTiming(1, { duration: 500 }));
+    moneyVsLifeTranslate.value = withDelay(560, withTiming(0, { duration: 500 }));
+    tipsOpacity.value = withDelay(700, withTiming(1, { duration: 500 }));
+    tipsTranslate.value = withDelay(700, withTiming(0, { duration: 500 }));
+    chartOpacity.value = withDelay(840, withTiming(1, { duration: 500 }));
+    chartTranslate.value = withDelay(840, withTiming(0, { duration: 500 }));
   }, []);
 
   useEffect(() => {
@@ -76,6 +96,16 @@ export function HomeDashboardScreen() {
     transform: [{ translateY: chartTranslate.value }],
   }));
 
+  const moneyVsLifeStyle = useAnimatedStyle(() => ({
+    opacity: moneyVsLifeOpacity.value,
+    transform: [{ translateY: moneyVsLifeTranslate.value }],
+  }));
+
+  const tipsStyle = useAnimatedStyle(() => ({
+    opacity: tipsOpacity.value,
+    transform: [{ translateY: tipsTranslate.value }],
+  }));
+
   const progressAnimatedStyle = useAnimatedStyle(() => ({
     width: progressFill.value,
   }));
@@ -91,9 +121,9 @@ export function HomeDashboardScreen() {
         <AppHeader
           title="Welcome back"
           elevated={headerElevated}
-          onMenuPress={() => {}}
-          onNotificationsPress={() => {}}
-          onHelpPress={() => {}}
+          onMenuPress={() => { }}
+          onNotificationsPress={() => { }}
+          onHelpPress={() => { }}
         />
       </View>
 
@@ -110,7 +140,7 @@ export function HomeDashboardScreen() {
       >
         <Animated.View style={[styles.card, dailyStyle]}>
           <View style={styles.rowBetween}>
-            <Text style={styles.cardTitle}>Todays progress</Text>
+            <Text style={styles.cardTitle}>Today's progress</Text>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>Day 12</Text>
             </View>
@@ -182,9 +212,64 @@ export function HomeDashboardScreen() {
           </View>
         </Animated.View>
 
+        <Animated.View style={[styles.section, moneyVsLifeStyle]}>
+          <View style={styles.moneyVsLifeCard}>
+            <View style={styles.moneyVsLifeHeader}>
+              <MaterialCommunityIcons name="chart-line-variant" size={22} color={colors.accent} />
+              <Text style={styles.moneyVsLifeTitle}>What will you get in return?</Text>
+            </View>
+            <Text style={styles.moneyVsLifeSubtitle}>Money and life expectancy</Text>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderText, styles.tableColPeriod]}>Period</Text>
+              <Text style={[styles.tableHeaderText, styles.tableColMoney]}>Money saved</Text>
+              <Text style={[styles.tableHeaderText, styles.tableColLife]}>Life gained</Text>
+            </View>
+            {MONEY_VS_LIFE_ROWS.map((row, index) => (
+              <View
+                key={row.period}
+                style={[
+                  styles.tableRow,
+                  index % 2 === 1 && styles.tableRowAlt,
+                ]}
+              >
+                <Text style={[styles.tableCell, styles.tableColPeriod]}>{row.period}</Text>
+                <View style={styles.tableCellMoney}>
+                  <Feather name="dollar-sign" size={12} color={colors.secondary} />
+                  <Text style={[styles.tableCell, styles.tableCellValue]}>{row.money}</Text>
+                </View>
+                <View style={styles.tableCellLife}>
+                  <Feather name="clock" size={12} color={colors.accent} />
+                  <Text style={[styles.tableCell, styles.tableCellValue]}>{row.life}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </Animated.View>
+
+        <Animated.View style={[styles.section, tipsStyle]}>
+          <Pressable
+            style={({ pressed }) => [styles.tipsCard, pressed && styles.tipsCardPressed]}
+            onPress={() => setTipsModalVisible(true)}
+          >
+            <View style={styles.tipsCardContent}>
+              <View style={styles.tipsCardLeft}>
+                <Text style={styles.tipsCardTitle}>Quit smoking tips</Text>
+                <Text style={styles.tipsCardHint}>Motivation and strategies that work</Text>
+                <View style={styles.tipsCta}>
+                  <Text style={styles.tipsCtaText}>EXPLORE</Text>
+                  <Feather name="arrow-right" size={14} color={colors.accent} />
+                </View>
+              </View>
+              <View style={styles.tipsCardIconWrap}>
+                <MaterialCommunityIcons name="sign-direction" size={48} color={colors.divider} />
+              </View>
+            </View>
+          </Pressable>
+        </Animated.View>
+
         <Animated.View style={[styles.section, chartStyle]}>
           <View style={styles.rowBetween}>
-            <Text style={styles.sectionTitle}>Money & life expectancy</Text>
+            <Text style={styles.sectionTitle}>Recovery trend</Text>
             <Pressable style={styles.inlineCta}>
               <Text style={styles.inlineCtaText}>View trend</Text>
             </Pressable>
@@ -201,8 +286,52 @@ export function HomeDashboardScreen() {
         </Animated.View>
       </ScrollView>
 
+      <Modal
+        visible={tipsModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setTipsModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setTipsModalVisible(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalIconWrap}>
+              <MaterialCommunityIcons name="lightbulb-on-outline" size={40} color={colors.milestone} />
+            </View>
+            <Text style={styles.modalTitle}>You're doing great</Text>
+            <Text style={styles.modalBody}>
+              Every craving you ride out makes you stronger. Small wins add up—each hour, each day you choose yourself over the habit is a victory worth celebrating.
+            </Text>
+            <View style={styles.modalBullets}>
+              <View style={styles.modalBulletRow}>
+                <Feather name="check-circle" size={18} color={colors.secondary} />
+                <Text style={styles.modalBulletText}>Stay busy with a short activity when urges hit.</Text>
+              </View>
+              <View style={styles.modalBulletRow}>
+                <Feather name="check-circle" size={18} color={colors.secondary} />
+                <Text style={styles.modalBulletText}>Reach out to someone when it gets tough.</Text>
+              </View>
+              <View style={styles.modalBulletRow}>
+                <Feather name="check-circle" size={18} color={colors.secondary} />
+                <Text style={styles.modalBulletText}>Remember why you started—you've got this.</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setTipsModalVisible(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </TouchableOpacity>
+      </Modal>
+
       <BottomNav activeKey="progress" bottomInset={insets.bottom} />
-      <PanicButton bottomOffset={FOOTER_HEIGHT + insets.bottom} onPress={() => {}} />
+      <PanicButton bottomOffset={FOOTER_HEIGHT + insets.bottom} onPress={() => { }} />
     </View>
   );
 }
@@ -401,6 +530,202 @@ const styles = StyleSheet.create({
   pastValue: {
     ...typography.bodyMedium,
     color: colors.textSecondary,
+  },
+  moneyVsLifeCard: {
+    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.backgroundCard,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    shadowColor: colors.shadowLight,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  moneyVsLifeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  moneyVsLifeTitle: {
+    ...typography.titleSmall,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  moneyVsLifeSubtitle: {
+    ...typography.bodySmall,
+    color: colors.textMuted,
+    marginBottom: spacing.md,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    borderBottomWidth: 1.5,
+    borderBottomColor: colors.divider,
+    marginBottom: spacing.xs,
+  },
+  tableHeaderText: {
+    ...typography.label,
+    color: colors.textMuted,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  tableRowAlt: {
+    backgroundColor: colors.backgroundSecondary,
+  },
+  tableColPeriod: {
+    width: '28%',
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  tableColMoney: {
+    width: '36%',
+  },
+  tableColLife: {
+    width: '36%',
+  },
+  tableCell: {
+    ...typography.bodySmall,
+    color: colors.textPrimary,
+  },
+  tableCellValue: {
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  tableCellMoney: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xxs,
+    width: '36%',
+  },
+  tableCellLife: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xxs,
+    width: '36%',
+  },
+  tipsCard: {
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.backgroundCard,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    overflow: 'hidden',
+    shadowColor: colors.shadowLight,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  tipsCardPressed: {
+    opacity: 0.92,
+  },
+  tipsCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.lg,
+  },
+  tipsCardLeft: {
+    flex: 1,
+  },
+  tipsCardTitle: {
+    ...typography.titleSmall,
+    color: colors.textPrimary,
+    marginBottom: spacing.xxs,
+  },
+  tipsCardHint: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginBottom: spacing.sm,
+  },
+  tipsCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  tipsCtaText: {
+    ...typography.label,
+    color: colors.accent,
+    letterSpacing: 0.8,
+  },
+  tipsCardIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: colors.backgroundCard,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    shadowColor: colors.shadowHeavy,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  modalIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.milestoneSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    ...typography.title,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  modalBody: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+    lineHeight: 22,
+  },
+  modalBullets: {
+    marginBottom: spacing.lg,
+  },
+  modalBulletRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  modalBulletText: {
+    ...typography.bodySmall,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  modalCloseButton: {
+    backgroundColor: colors.accent,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    ...typography.button,
+    color: colors.textOnAccent,
   },
   chartCard: {
     padding: spacing.lg,

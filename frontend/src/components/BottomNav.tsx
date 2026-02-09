@@ -9,7 +9,6 @@ import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../theme';
 
 export type BottomNavKey =
-  | 'tips'
   | 'planner'
   | 'rewards'
   | 'progress'
@@ -64,11 +63,6 @@ function NavButton({
 
 export function BottomNav({ activeKey, onSelect, bottomInset = 0 }: BottomNavProps) {
   const items: NavItem[] = [
-    {
-      key: 'tips',
-      label: 'Quit Tips',
-      icon: <Feather name="book-open" size={18} color={colors.textSecondary} />,
-    },
     {
       key: 'planner',
       label: 'Planner',
