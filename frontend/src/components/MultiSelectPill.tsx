@@ -1,19 +1,17 @@
-import React from 'react';
-import { Text, StyleSheet, View } from 'react-native';
+import React, { useCallback, useRef } from 'react';
+import { Text, StyleSheet, View, Platform } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
+  runOnJS,
 } from 'react-native-reanimated';
-
-const AnimatedView = Animated.createAnimatedComponent(View);
-
 import * as Haptics from 'expo-haptics';
 import { colors, typography, spacing, borderRadius } from '../theme/index';
 
-// const AnimatedView = createAnimatedComponent(View);
+const AnimatedView = Animated.createAnimatedComponent(View);
 const SPRING_CONFIG = { damping: 15, stiffness: 150 };
 
 type MultiSelectPillProps = {
@@ -31,10 +29,19 @@ export function MultiSelectPill({
 }: MultiSelectPillProps) {
   const scale = useSharedValue(1);
   const bgOpacity = useSharedValue(selected ? 1 : 0);
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
 
   React.useEffect(() => {
     bgOpacity.value = withTiming(selected ? 1 : 0, { duration: 200 });
   }, [selected]);
+
+  const handleTap = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    onSelectRef.current();
+  }, []);
 
   const tap = Gesture.Tap()
     .onBegin(() => {
@@ -43,8 +50,7 @@ export function MultiSelectPill({
     .onFinalize((_, success) => {
       scale.value = withSpring(1, SPRING_CONFIG);
       if (success) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onSelect();
+        runOnJS(handleTap)();
       }
     });
 

@@ -1,11 +1,13 @@
-import React from 'react';
-import { Text, StyleSheet } from 'react-native';
+import React, { useCallback, useRef, useEffect } from 'react';
+import { Text, StyleSheet, Platform } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
+  runOnJS,
+  interpolateColor,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { colors, typography, spacing, borderRadius } from '../theme';
@@ -21,10 +23,19 @@ type SelectCardProps = {
 export function SelectCard({ label, selected, onSelect }: SelectCardProps) {
   const scale = useSharedValue(1);
   const borderOpacity = useSharedValue(selected ? 1 : 0);
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
 
-  React.useEffect(() => {
+  useEffect(() => {
     borderOpacity.value = withTiming(selected ? 1 : 0, { duration: 200 });
   }, [selected]);
+
+  const handleTap = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    onSelectRef.current();
+  }, []);
 
   const tap = Gesture.Tap()
     .onBegin(() => {
@@ -33,15 +44,18 @@ export function SelectCard({ label, selected, onSelect }: SelectCardProps) {
     .onFinalize((_, success) => {
       scale.value = withSpring(1, SPRING_CONFIG);
       if (success) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onSelect();
+        runOnJS(handleTap)();
       }
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
     borderColor: `rgba(90, 154, 122, ${borderOpacity.value})`,
-    backgroundColor: selected ? colors.accentSoft : colors.backgroundCard,
+    backgroundColor: interpolateColor(
+      borderOpacity.value,
+      [0, 1],
+      [colors.backgroundCard, colors.accentSoft]
+    ),
   }));
 
   return (
