@@ -34,6 +34,8 @@ export type Frequency =
   | 'multiple_times_day'
   | 'not_sure';
 
+export type FrequencyUnit = 'per_week' | 'per_day';
+
 export type ImpactArea =
   | 'sleep'
   | 'focus'
@@ -56,6 +58,8 @@ export interface OnboardingState {
   whenItHappens: WhenItHappens[];
   feelAfter: FeelAfter | null;
   frequency: Frequency | null;
+  frequencyUnit: FrequencyUnit;
+  frequencyQuantity: number;
   moneySpent: string;
   impactAreas: ImpactArea[];
   intention: Intention | null;
@@ -70,6 +74,8 @@ const initialState: OnboardingState = {
   whenItHappens: [],
   feelAfter: null,
   frequency: null,
+  frequencyUnit: 'per_week',
+  frequencyQuantity: 1,
   moneySpent: '',
   impactAreas: [],
   intention: null,
@@ -88,6 +94,8 @@ type OnboardingContextValue = {
   setWhenItHappens: (v: WhenItHappens[] | ((prev: WhenItHappens[]) => WhenItHappens[])) => void;
   setFeelAfter: (v: FeelAfter | null) => void;
   setFrequency: (v: Frequency | null) => void;
+  setFrequencyUnit: (v: FrequencyUnit) => void;
+  setFrequencyQuantity: (v: number) => void;
   setMoneySpent: (v: string) => void;
   setImpactAreas: (v: ImpactArea[] | ((prev: ImpactArea[]) => ImpactArea[])) => void;
   setIntention: (v: Intention | null) => void;
@@ -149,6 +157,14 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     setState((s) => ({ ...s, frequency: v }));
   }, []);
 
+  const setFrequencyUnit = useCallback((v: FrequencyUnit) => {
+    setState((s) => ({ ...s, frequencyUnit: v }));
+  }, []);
+
+  const setFrequencyQuantity = useCallback((v: number) => {
+    setState((s) => ({ ...s, frequencyQuantity: Math.round(v) }));
+  }, []);
+
   const setMoneySpent = useCallback((v: string) => {
     setState((s) => ({ ...s, moneySpent: v }));
   }, []);
@@ -204,12 +220,29 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     setIsLoading(true);
     setError(null);
     try {
+      const timesPerWeek =
+        state.frequencyUnit === 'per_week'
+          ? state.frequencyQuantity
+          : state.frequencyQuantity * 7;
+      const derivedFrequency: Frequency | null =
+        timesPerWeek <= 2
+          ? 'once_in_a_while'
+          : timesPerWeek <= 6
+            ? 'few_times_week'
+            : timesPerWeek <= 14
+              ? 'almost_every_day'
+              : 'multiple_times_day';
+      const moneySpentUnit =
+        state.frequencyUnit === 'per_week' ? ('per_week' as const) : ('per_day' as const);
       await OnboardingApi.updateOnboarding(state.userId, {
         addictionTypes: state.addictionTypes,
         whenItHappens: state.whenItHappens,
         feelAfter: state.feelAfter,
-        frequency: state.frequency,
-        moneySpent: state.moneySpent || undefined,
+        frequency: derivedFrequency,
+        frequencyUnit: state.frequencyUnit,
+        frequencyQuantity: state.frequencyQuantity,
+        moneySpent: state.moneySpent?.trim() || undefined,
+        moneySpentUnit,
         impactAreas: state.impactAreas,
         intention: state.intention,
         duration: state.duration,
@@ -263,6 +296,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     setWhenItHappens,
     setFeelAfter,
     setFrequency,
+    setFrequencyUnit,
+    setFrequencyQuantity,
     setMoneySpent,
     setImpactAreas,
     setIntention,

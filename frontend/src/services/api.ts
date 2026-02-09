@@ -3,10 +3,13 @@ import {
   WhenItHappens,
   FeelAfter,
   Frequency,
+  FrequencyUnit,
   ImpactArea,
   Intention,
   Duration,
 } from '../context/OnboardingContext';
+
+export type MoneySpentUnit = 'per_week' | 'per_day';
 
 // Change this to your backend URL
 const API_BASE_URL = 'https://saathi-f69t.onrender.com/api';
@@ -114,7 +117,10 @@ export class OnboardingApi {
       whenItHappens?: WhenItHappens[];
       feelAfter?: FeelAfter | null;
       frequency?: Frequency | null;
+      frequencyUnit?: FrequencyUnit | null;
+      frequencyQuantity?: number | null;
       moneySpent?: string;
+      moneySpentUnit?: MoneySpentUnit | null;
       impactAreas?: ImpactArea[];
       intention?: Intention | null;
       duration?: Duration | null;
