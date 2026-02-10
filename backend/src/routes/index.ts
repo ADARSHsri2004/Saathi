@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { OnboardingController } from '../controllers/onboardingController';
+import { DashboardController } from '../controllers/dashboardController';
 
 const router = Router();
 
@@ -13,5 +14,10 @@ router.post('/users', OnboardingController.createUser);
 router.get('/users/:userId/onboarding', OnboardingController.getUserOnboarding);
 router.put('/users/:userId/onboarding', OnboardingController.updateOnboarding);
 router.post('/users/:userId/onboarding/complete', OnboardingController.completeOnboarding);
+
+// Dashboard routes
+router.get('/users/:userId/dashboard/metrics', DashboardController.getDashboardMetrics);
+router.get('/users/:userId/dashboard/projections', DashboardController.getFutureProjections);
+router.post('/users/:userId/dashboard/relapse', DashboardController.recordRelapse);
 
 export default router;

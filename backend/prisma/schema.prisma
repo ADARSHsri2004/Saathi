@@ -17,6 +17,7 @@ model User {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   onboarding        Onboarding?
+  relapses          Relapse[]
 }
 
 model Onboarding {
@@ -35,14 +36,31 @@ model Onboarding {
   
   // Patterns
   frequency               String?  // Single selection
-  moneySpent              String?
+  frequencyQuantity       Int?     // How many cigarettes
+  frequencyUnit           String?  // 'per_week' or 'per_day'
+  moneySpent              String?  // Amount spent as string
+  moneySpentPerDay        Float?   // Calculated money spent per day
   impactAreas             String[] // Array of impact areas
   
   // Intention & Duration
   intention               String?  // Single selection: 'reduce', 'pause', 'just_understand'
   duration                String?  // Single selection: '7_days', '14_days', '30_days', 'not_sure'
   
+  // Journey tracking
+  journeyStartDate        DateTime? // When the quit smoking journey started
+  
   completedAt             DateTime?
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 }
+
+model Relapse {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relapseDate       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  
+  @@index([userId])
+}
+

@@ -136,8 +136,24 @@ export class OnboardingController {
       if (updateData.frequency !== undefined) {
         updatePayload.frequency = updateData.frequency;
       }
+      if (updateData.frequencyQuantity !== undefined) {
+        updatePayload.frequencyQuantity = updateData.frequencyQuantity;
+      }
+      if (updateData.frequencyUnit !== undefined) {
+        updatePayload.frequencyUnit = updateData.frequencyUnit;
+      }
       if (updateData.moneySpent !== undefined) {
         updatePayload.moneySpent = updateData.moneySpent;
+        
+        // Calculate moneySpentPerDay
+        const amount = parseFloat(updateData.moneySpent);
+        if (!isNaN(amount)) {
+          if (updateData.moneySpentUnit === 'per_day') {
+            updatePayload.moneySpentPerDay = amount;
+          } else if (updateData.moneySpentUnit === 'per_week') {
+            updatePayload.moneySpentPerDay = amount / 7;
+          }
+        }
       }
       if (updateData.impactAreas !== undefined) {
         updatePayload.impactAreas = updateData.impactAreas;
@@ -169,7 +185,7 @@ export class OnboardingController {
   }
 
   /**
-   * Complete onboarding - set completion timestamp
+   * Complete onboarding - set completion timestamp and journey start date
    */
   static async completeOnboarding(
     req: Request<{ userId: string }>,
@@ -178,10 +194,12 @@ export class OnboardingController {
     try {
       const { userId } = req.params;
 
+      const now = new Date();
       const onboarding = await prisma.onboarding.update({
         where: { userId },
         data: {
-          completedAt: new Date(),
+          completedAt: now,
+          journeyStartDate: now, // Start the journey when onboarding completes
         },
       });
 
@@ -224,10 +242,14 @@ function mapOnboardingResponse(onboarding: any): OnboardingResponse {
     whenItHappens: onboarding.whenItHappens,
     feelAfter: onboarding.feelAfter || undefined,
     frequency: onboarding.frequency || undefined,
+    frequencyQuantity: onboarding.frequencyQuantity || undefined,
+    frequencyUnit: onboarding.frequencyUnit || undefined,
     moneySpent: onboarding.moneySpent || undefined,
+    moneySpentPerDay: onboarding.moneySpentPerDay || undefined,
     impactAreas: onboarding.impactAreas,
     intention: onboarding.intention || undefined,
     duration: onboarding.duration || undefined,
+    journeyStartDate: onboarding.journeyStartDate ? onboarding.journeyStartDate.toISOString() : undefined,
     completedAt: onboarding.completedAt ? onboarding.completedAt.toISOString() : undefined,
     createdAt: onboarding.createdAt.toISOString(),
     updatedAt: onboarding.updatedAt.toISOString(),

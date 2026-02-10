@@ -12,7 +12,8 @@ import {
 export type MoneySpentUnit = 'per_week' | 'per_day';
 
 // Change this to your backend URL
-const API_BASE_URL = 'https://saathi-f69t.onrender.com/api';
+// const API_BASE_URL = 'https://saathi-f69t.onrender.com/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://saathi-f69t.onrender.com/api';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -198,3 +199,134 @@ export class OnboardingApi {
     }
   }
 }
+
+/**
+ * Dashboard API Response Types
+ */
+export interface TodayProgressResponse {
+  percentage: number;
+  timeElapsed: string;
+  timeRemaining: string;
+}
+
+export interface RecoveryMetricsResponse {
+  timeFreeHours: number;
+  lifeRegainedMinutes: number;
+  moneySaved: number;
+  cigarettesNotConsumed: number;
+}
+
+export interface PastImpactResponse {
+  totalLifeLostMinutes: number;
+  totalMoneyWasted: number;
+  totalConsumed: number;
+}
+
+export interface DashboardMetricsResponse {
+  todayProgress: TodayProgressResponse;
+  recoveryMetrics: RecoveryMetricsResponse;
+  pastImpact: PastImpactResponse;
+  journeyStartDate: string | null;
+  lastRelapseDate: string | null;
+  totalRelapses: number;
+  currentStreakDays: number;
+}
+
+export interface FutureProjectionResponse {
+  period: string;
+  money: string;
+  life: string;
+}
+
+/**
+ * API Service for Dashboard
+ */
+export class DashboardApi {
+  /**
+   * Get dashboard metrics
+   */
+  static async getDashboardMetrics(userId: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}/dashboard/metrics`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: ApiResponse<DashboardMetricsResponse> = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch dashboard metrics');
+      }
+
+      return data.data!;
+    } catch (error) {
+      console.error('Error fetching dashboard metrics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get future projections
+   */
+  static async getFutureProjections(userId: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}/dashboard/projections`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: ApiResponse<FutureProjectionResponse[]> = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch future projections');
+      }
+
+      return data.data!;
+    } catch (error) {
+      console.error('Error fetching future projections:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Record a relapse
+   */
+  static async recordRelapse(userId: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}/dashboard/relapse`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: ApiResponse<{ message: string }> = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to record relapse');
+      }
+
+      return data.data!;
+    } catch (error) {
+      console.error('Error recording relapse:', error);
+      throw error;
+    }
+  }
+}
+

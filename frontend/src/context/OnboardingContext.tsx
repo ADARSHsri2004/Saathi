@@ -110,6 +110,7 @@ type OnboardingContextValue = {
 const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
 const ONBOARDING_COMPLETE_KEY = 'onboarding_complete';
+const USER_ID_KEY = 'user_id';
 
 export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<OnboardingState>(initialState);
@@ -265,6 +266,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     setError(null);
     try {
       await OnboardingApi.completeOnboarding(state.userId);
+      await AsyncStorage.setItem(USER_ID_KEY, state.userId);
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to complete onboarding';
       setError(errorMessage);
@@ -275,14 +277,26 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     }
   }, [state.userId]);
 
+  // const markOnboardingComplete = useCallback(async () => {
+  //   setIsOnboardingComplete(true);
+  //   try {
+  //     await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+  //     await AsyncStorage.setItem(USER_ID_KEY, state.userId);
+  //   } catch (err) {
+  //     console.error('Failed to persist onboarding status:', err);
+  //   }
+  // }, []);
+
   const markOnboardingComplete = useCallback(async () => {
-    setIsOnboardingComplete(true);
-    try {
-      await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
-    } catch (err) {
-      console.error('Failed to persist onboarding status:', err);
-    }
-  }, []);
+  setIsOnboardingComplete(true);
+
+  try {
+    await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+    await AsyncStorage.setItem(USER_ID_KEY, state.userId);
+  } catch (err) {
+    console.error('Failed to persist onboarding status:', err);
+  }
+}, [state.userId]);
 
   const value: OnboardingContextValue = {
     state,

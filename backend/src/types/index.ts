@@ -76,7 +76,10 @@ export interface UpdateOnboardingRequest {
   whenItHappens?: WhenItHappens[];
   feelAfter?: FeelAfter | null;
   frequency?: Frequency | null;
+  frequencyQuantity?: number;
+  frequencyUnit?: 'per_week' | 'per_day';
   moneySpent?: string;
+  moneySpentUnit?: 'per_week' | 'per_day';
   impactAreas?: ImpactArea[];
   intention?: Intention | null;
   duration?: Duration | null;
@@ -89,10 +92,14 @@ export interface OnboardingResponse {
   whenItHappens: WhenItHappens[];
   feelAfter?: FeelAfter;
   frequency?: Frequency;
+  frequencyQuantity?: number;
+  frequencyUnit?: 'per_week' | 'per_day';
   moneySpent?: string;
+  moneySpentPerDay?: number;
   impactAreas: ImpactArea[];
   intention?: Intention;
   duration?: Duration;
+  journeyStartDate?: string;
   completedAt?: string;
   createdAt: string;
   updatedAt: string;

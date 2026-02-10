@@ -8,6 +8,8 @@ import {
   Platform,
   Modal,
   TouchableOpacity,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -21,24 +23,24 @@ import { AppHeader } from '../components/AppHeader';
 import { BottomNav } from '../components/BottomNav';
 import { PanicButton } from '../components/PanicButton';
 import { colors, spacing, typography, borderRadius } from '../theme';
+import { useDashboard } from '../context/DashboardContext';
+import { getRandomTips } from '../constants/smokingTips';
 
 const HEADER_HEIGHT = 56;
 const FOOTER_HEIGHT = 86;
 
-const MONEY_VS_LIFE_ROWS = [
-  { period: '1 Week', money: '₹ 336', life: '0d 5h 8m' },
-  { period: '1 Month', money: '₹ 1,440', life: '0d 22h 0m' },
-  { period: '1 Year', money: '₹ 17,520', life: '11d 3h 40m' },
-  { period: '5 Years', money: '₹ 87,600', life: '1M 25d 18h' },
-  { period: '10 Years', money: '₹ 175,200', life: '3M 21d 12h' },
-  { period: '20 Years', money: '₹ 350,400', life: '7M 13d 1h' },
-];
-
 export function HomeDashboardScreen() {
   const insets = useSafeAreaInsets();
+  const { metrics, projections, isLoading, recordRelapse, refreshDashboard } = useDashboard();
   const [headerElevated, setHeaderElevated] = useState(false);
   const [progressWidth, setProgressWidth] = useState(0);
-  const progressValue = 0.68;
+  const [tipsModalVisible, setTipsModalVisible] = useState(false);
+  const [currentTips, setCurrentTips] = useState(() => getRandomTips(3));
+  const [relapseModalVisible, setRelapseModalVisible] = useState(false);
+  const [isSubmittingRelapse, setIsSubmittingRelapse] = useState(false);
+  
+  const relapseOpacity = useSharedValue(0);
+  const relapseScale = useSharedValue(0.9);
 
   const progressFill = useSharedValue(0);
   const dailyOpacity = useSharedValue(0);
@@ -53,7 +55,6 @@ export function HomeDashboardScreen() {
   const moneyVsLifeTranslate = useSharedValue(12);
   const tipsOpacity = useSharedValue(0);
   const tipsTranslate = useSharedValue(12);
-  const [tipsModalVisible, setTipsModalVisible] = useState(false);
 
   useEffect(() => {
     dailyOpacity.value = withDelay(120, withTiming(1, { duration: 500 }));
@@ -71,10 +72,64 @@ export function HomeDashboardScreen() {
   }, []);
 
   useEffect(() => {
-    if (progressWidth > 0) {
+    if (progressWidth > 0 && metrics) {
+      const progressValue = metrics.todayProgress.percentage / 100;
       progressFill.value = withTiming(progressWidth * progressValue, { duration: 1200 });
     }
-  }, [progressWidth]);
+  }, [progressWidth, metrics]);
+
+  const handleResetClick = () => {
+    relapseOpacity.value = withTiming(1, { duration: 300 });
+    relapseScale.value = withTiming(1, { duration: 300 });
+    setRelapseModalVisible(true);
+  };
+
+  const closeRelapseModal = () => {
+    relapseOpacity.value = withTiming(0, { duration: 200 });
+    relapseScale.value = withTiming(0.9, { duration: 200 });
+    setTimeout(() => setRelapseModalVisible(false), 200);
+  };
+
+  const handleConfirmRelapse = async () => {
+    setIsSubmittingRelapse(true);
+    try {
+      await recordRelapse();
+      closeRelapseModal();
+      setTimeout(() => {
+        Alert.alert('Reset Complete', 'Your progress has been reset. Remember, every attempt teaches you something. Keep going, you can do this!');
+      }, 300);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to record relapse. Please try again.');
+    } finally {
+      setIsSubmittingRelapse(false);
+    }
+  };
+
+  const formatLifeTime = (minutes: number): string => {
+    if (minutes < 60) {
+      return `${Math.round(minutes)}m`;
+    }
+    const hours = minutes / 60;
+    if (hours < 24) {
+      return `${Math.floor(hours)}h ${Math.round((hours % 1) * 60)}m`;
+    }
+    const days = hours / 24;
+    if (days < 30) {
+      return `${Math.floor(days)}d ${Math.floor((days % 1) * 24)}h`;
+    }
+    const months = Math.floor(days / 30);
+    const remainingDays = Math.floor(days % 30);
+    if (months < 12) {
+      return `${months}M ${remainingDays}d`;
+    }
+    const years = Math.floor(months / 12);
+    const remainingMonths = months % 12;
+    return `${years}Y ${remainingMonths}M`;
+  };
+
+// here to place animated style
+
+
 
   const dailyStyle = useAnimatedStyle(() => ({
     opacity: dailyOpacity.value,
@@ -110,6 +165,40 @@ export function HomeDashboardScreen() {
     width: progressFill.value,
   }));
 
+  const relapseModalStyle = useAnimatedStyle(() => ({
+    opacity: relapseOpacity.value,
+  }));
+
+  const relapseContentStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: relapseScale.value }],
+  }));
+
+
+
+
+
+  if (isLoading && !metrics) {
+    return (
+      <View style={[styles.screen, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.accent} />
+        <Text style={[styles.motivationalText, { marginTop: spacing.md }]}>Loading your progress...</Text>
+      </View>
+    );
+  }
+
+  if (!metrics) {
+    return (
+      <View style={[styles.screen, { justifyContent: 'center', alignItems: 'center', padding: spacing.xl }]}>
+        <Text style={styles.cardTitle}>No Data Available</Text>
+        <Text style={[styles.motivationalText, { textAlign: 'center', marginTop: spacing.md }]}>
+          Please complete onboarding first to start tracking your progress.
+        </Text>
+      </View>
+    );
+  }
+
+
+
   return (
     <View style={styles.screen}>
       <View style={styles.backgroundArt}>
@@ -142,7 +231,7 @@ export function HomeDashboardScreen() {
           <View style={styles.rowBetween}>
             <Text style={styles.cardTitle}>Today's progress</Text>
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>Day 12</Text>
+              <Text style={styles.badgeText}>Day {metrics.currentStreakDays}</Text>
             </View>
           </View>
           <Text style={styles.motivationalText}>
@@ -155,9 +244,21 @@ export function HomeDashboardScreen() {
             <Animated.View style={[styles.progressFill, progressAnimatedStyle]} />
           </View>
           <View style={styles.progressRow}>
-            <Text style={styles.progressLabel}>68% of today complete</Text>
-            <Text style={styles.progressLabel}>7h 40m left</Text>
+            <Text style={styles.progressLabel}>{metrics.todayProgress.percentage}% of today complete</Text>
+            <Text style={styles.progressLabel}>{metrics.todayProgress.timeRemaining} left</Text>
           </View>
+          
+          {/* Reset Button */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.resetButton,
+              pressed && styles.resetButtonPressed,
+            ]}
+            onPress={handleResetClick}
+          >
+            <MaterialCommunityIcons name="restart" size={16} color={colors.error} />
+            <Text style={styles.resetButtonText}>Reset Progress (Relapse)</Text>
+          </Pressable>
         </Animated.View>
 
         <Animated.View style={[styles.section, metricsStyle]}>
@@ -168,28 +269,34 @@ export function HomeDashboardScreen() {
                 <Feather name="clock" size={18} color={colors.accent} />
               </View>
               <Text style={styles.metricLabel}>Time free</Text>
-              <Text style={styles.metricValue}>12 days</Text>
+              <Text style={styles.metricValue}>
+                {metrics.recoveryMetrics.timeFreeHours < 24 
+                  ? `${metrics.recoveryMetrics.timeFreeHours.toFixed(1)} hrs`
+                  : `${Math.floor(metrics.recoveryMetrics.timeFreeHours / 24)} days`}
+              </Text>
             </View>
             <View style={[styles.metricCard, styles.metricCardGreen]}>
               <View style={styles.metricIconWrapGreen}>
                 <MaterialCommunityIcons name="heart-outline" size={18} color={colors.secondary} />
               </View>
               <Text style={styles.metricLabel}>Life regained</Text>
-              <Text style={styles.metricValue}>4.6 hrs</Text>
+              <Text style={styles.metricValue}>
+                {formatLifeTime(metrics.recoveryMetrics.lifeRegainedMinutes)}
+              </Text>
             </View>
             <View style={[styles.metricCard, styles.metricCardGold]}>
               <View style={styles.metricIconWrapGold}>
                 <MaterialCommunityIcons name="cash-multiple" size={18} color={colors.milestone} />
               </View>
               <Text style={styles.metricLabel}>Money saved</Text>
-              <Text style={styles.metricValue}>$92</Text>
+              <Text style={styles.metricValue}>₹{metrics.recoveryMetrics.moneySaved.toFixed(0)}</Text>
             </View>
             <View style={[styles.metricCard, styles.metricCardBlue]}>
               <View style={styles.metricIconWrapBlue}>
                 <MaterialCommunityIcons name="smoking-off" size={18} color={colors.info} />
               </View>
               <Text style={styles.metricLabel}>Not consumed</Text>
-              <Text style={styles.metricValue}>36 sticks</Text>
+              <Text style={styles.metricValue}>{Math.round(metrics.recoveryMetrics.cigarettesNotConsumed)} sticks</Text>
             </View>
           </View>
         </Animated.View>
@@ -199,15 +306,15 @@ export function HomeDashboardScreen() {
           <View style={styles.pastImpactCard}>
             <View style={styles.pastStatRow}>
               <Text style={styles.pastLabel}>Total consumed</Text>
-              <Text style={styles.pastValue}>1,420 sticks</Text>
+              <Text style={styles.pastValue}>{metrics.pastImpact.totalConsumed} days</Text>
             </View>
             <View style={styles.pastStatRow}>
               <Text style={styles.pastLabel}>Money wasted</Text>
-              <Text style={styles.pastValue}>$2,180</Text>
+              <Text style={styles.pastValue}>₹{metrics.pastImpact.totalMoneyWasted.toFixed(0)}</Text>
             </View>
             <View style={styles.pastStatRow}>
               <Text style={styles.pastLabel}>Life lost</Text>
-              <Text style={styles.pastValue}>9.3 days</Text>
+              <Text style={styles.pastValue}>{formatLifeTime(metrics.pastImpact.totalLifeLostMinutes)}</Text>
             </View>
           </View>
         </Animated.View>
@@ -224,7 +331,7 @@ export function HomeDashboardScreen() {
               <Text style={[styles.tableHeaderText, styles.tableColMoney]}>Money saved</Text>
               <Text style={[styles.tableHeaderText, styles.tableColLife]}>Life gained</Text>
             </View>
-            {MONEY_VS_LIFE_ROWS.map((row, index) => (
+            {projections.map((row, index) => (
               <View
                 key={row.period}
                 style={[
@@ -249,7 +356,10 @@ export function HomeDashboardScreen() {
         <Animated.View style={[styles.section, tipsStyle]}>
           <Pressable
             style={({ pressed }) => [styles.tipsCard, pressed && styles.tipsCardPressed]}
-            onPress={() => setTipsModalVisible(true)}
+            onPress={() => {
+              setCurrentTips(getRandomTips(3));
+              setTipsModalVisible(true);
+            }}
           >
             <View style={styles.tipsCardContent}>
               <View style={styles.tipsCardLeft}>
@@ -286,6 +396,58 @@ export function HomeDashboardScreen() {
         </Animated.View>
       </ScrollView>
 
+      {/* Relapse Confirmation Modal */}
+      <Modal
+        visible={relapseModalVisible}
+        transparent
+        animationType="none"
+        onRequestClose={closeRelapseModal}
+      >
+        <Animated.View style={[styles.modalBackdrop, relapseModalStyle]}>
+          <Animated.View style={[styles.modalContent, relapseContentStyle]}>
+            <View style={styles.modalIconWrap}>
+              <MaterialCommunityIcons name="alert-circle-outline" size={40} color={colors.error} />
+            </View>
+            <Text style={styles.modalTitle}>Are you sure?</Text>
+            <Text style={styles.modalBody}>
+              Did you relapse? Remember, setbacks are part of the journey. Every attempt teaches you something valuable. You're stronger than you think.
+            </Text>
+            <View style={styles.relapseWarning}>
+              <MaterialCommunityIcons name="information-outline" size={16} color={colors.warning} style={{ marginRight: spacing.sm }} />
+              <Text style={styles.relapseWarningText}>This will reset your current progress.</Text>
+            </View>
+            <View style={styles.buttonRow}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.modalButtonSecondary,
+                  pressed && styles.modalButtonPressed,
+                ]}
+                onPress={closeRelapseModal}
+                disabled={isSubmittingRelapse}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Not yet</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.modalButtonPrimary,
+                  pressed && styles.modalButtonPressed,
+                  isSubmittingRelapse && styles.modalButtonDisabled,
+                ]}
+                onPress={handleConfirmRelapse}
+                disabled={isSubmittingRelapse}
+              >
+                {isSubmittingRelapse ? (
+                  <ActivityIndicator size="small" color={colors.textOnAccent} />
+                ) : (
+                  <Text style={styles.modalButtonPrimaryText}>Yes, Reset</Text>
+                )}
+              </Pressable>
+            </View>
+          </Animated.View>
+        </Animated.View>
+      </Modal>
+
+      {/* Tips Modal */}
       <Modal
         visible={tipsModalVisible}
         transparent
@@ -306,18 +468,15 @@ export function HomeDashboardScreen() {
               Every craving you ride out makes you stronger. Small wins add up—each hour, each day you choose yourself over the habit is a victory worth celebrating.
             </Text>
             <View style={styles.modalBullets}>
-              <View style={styles.modalBulletRow}>
-                <Feather name="check-circle" size={18} color={colors.secondary} />
-                <Text style={styles.modalBulletText}>Stay busy with a short activity when urges hit.</Text>
-              </View>
-              <View style={styles.modalBulletRow}>
-                <Feather name="check-circle" size={18} color={colors.secondary} />
-                <Text style={styles.modalBulletText}>Reach out to someone when it gets tough.</Text>
-              </View>
-              <View style={styles.modalBulletRow}>
-                <Feather name="check-circle" size={18} color={colors.secondary} />
-                <Text style={styles.modalBulletText}>Remember why you started—you've got this.</Text>
-              </View>
+              {currentTips.map((tip, index) => (
+                <View key={index} style={styles.modalBulletRow}>
+                  <Feather name="check-circle" size={18} color={colors.secondary} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.modalBulletTitle}>{tip.title}</Text>
+                    <Text style={styles.modalBulletText}>{tip.message}</Text>
+                  </View>
+                </View>
+              ))}
             </View>
             <TouchableOpacity
               style={styles.modalCloseButton}
@@ -426,6 +585,27 @@ const styles = StyleSheet.create({
   progressLabel: {
     ...typography.caption,
     color: colors.textMuted,
+  },
+  resetButton: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  resetButtonPressed: {
+    opacity: 0.7,
+  },
+  resetButtonText: {
+    ...typography.label,
+    color: colors.error,
+    fontSize: 12,
   },
   section: {
     marginTop: spacing.xl,
@@ -708,14 +888,68 @@ const styles = StyleSheet.create({
   },
   modalBulletRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  modalBulletTitle: {
+    ...typography.label,
+    color: colors.textPrimary,
+    fontWeight: '600',
+    marginBottom: spacing.xxs,
   },
   modalBulletText: {
     ...typography.bodySmall,
-    color: colors.textPrimary,
+    color: colors.textSecondary,
     flex: 1,
+  },
+  relapseWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.warningSoft,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.lg,
+  },
+  relapseWarningText: {
+    ...typography.bodySmall,
+    color: colors.warning,
+    flex: 1,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  modalButtonSecondary: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    backgroundColor: colors.backgroundCard,
+  },
+  modalButtonPrimary: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    backgroundColor: colors.error,
+  },
+  modalButtonSecondaryText: {
+    ...typography.button,
+    color: colors.textPrimary,
+  },
+  modalButtonPrimaryText: {
+    ...typography.button,
+    color: colors.textOnAccent,
+  },
+  modalButtonPressed: {
+    opacity: 0.7,
+  },
+  modalButtonDisabled: {
+    opacity: 0.6,
   },
   modalCloseButton: {
     backgroundColor: colors.accent,
