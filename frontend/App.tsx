@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { OnboardingProvider } from './src/context/OnboardingContext';
 import { DashboardProvider } from './src/context/DashboardContext';
+import { FocusRecallProvider } from './src/context/FocusRecallContext';
 import { RootNavigator } from './src/navigation';
 import { colors } from './src/theme';
 
@@ -14,8 +15,10 @@ export default function App() {
       <SafeAreaProvider>
         <OnboardingProvider>
           <DashboardProvider>
-            <StatusBar style="light" backgroundColor={colors.background} />
-            <RootNavigator />
+            <FocusRecallProvider>
+              <StatusBar style="light" backgroundColor={colors.background} />
+              <RootNavigator />
+            </FocusRecallProvider>
           </DashboardProvider>
         </OnboardingProvider>
       </SafeAreaProvider>

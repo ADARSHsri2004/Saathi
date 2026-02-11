@@ -12,6 +12,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { MainStackParamList } from '../navigation/MainStack';
+import type { BottomNavKey } from '../components/BottomNav';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -29,8 +33,11 @@ import { getRandomTips } from '../constants/smokingTips';
 const HEADER_HEIGHT = 56;
 const FOOTER_HEIGHT = 86;
 
+type NavProp = NativeStackNavigationProp<MainStackParamList, 'HomeDashboard'>;
+
 export function HomeDashboardScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NavProp>();
   const { metrics, projections, isLoading, recordRelapse, refreshDashboard } = useDashboard();
   const [headerElevated, setHeaderElevated] = useState(false);
   const [progressWidth, setProgressWidth] = useState(0);
@@ -306,7 +313,7 @@ export function HomeDashboardScreen() {
           <View style={styles.pastImpactCard}>
             <View style={styles.pastStatRow}>
               <Text style={styles.pastLabel}>Total consumed</Text>
-              <Text style={styles.pastValue}>{metrics.pastImpact.totalConsumed} days</Text>
+              <Text style={styles.pastValue}>{metrics.pastImpact.totalConsumed} sticks</Text>
             </View>
             <View style={styles.pastStatRow}>
               <Text style={styles.pastLabel}>Money wasted</Text>
@@ -489,7 +496,13 @@ export function HomeDashboardScreen() {
         </TouchableOpacity>
       </Modal>
 
-      <BottomNav activeKey="progress" bottomInset={insets.bottom} />
+      <BottomNav
+        activeKey="progress"
+        onSelect={(key: BottomNavKey) => {
+          if (key === 'games') navigation.navigate('Games');
+        }}
+        bottomInset={insets.bottom}
+      />
       <PanicButton bottomOffset={FOOTER_HEIGHT + insets.bottom} onPress={() => { }} />
     </View>
   );
