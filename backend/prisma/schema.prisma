@@ -4,6 +4,11 @@
 generator client {
   provider = "prisma-client-js"
 }
+generator py {
+  provider = "prisma-client-py"
+  // This ensures the client is accessible to your Python code
+  interface = "asyncio"
+}
 
 datasource db {
   provider = "postgresql"
@@ -18,6 +23,7 @@ model User {
   updatedAt         DateTime @updatedAt
   onboarding        Onboarding?
   relapses          Relapse[]
+  chatMemory        ChatMemory?
 }
 
 model Onboarding {
@@ -63,4 +69,14 @@ model Relapse {
   
   @@index([userId])
 }
+
+model ChatMemory {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  summary       String   @default("")   // rolling conversation summary
+  lastUpdated   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+}
+
 
