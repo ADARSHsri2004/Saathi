@@ -2,7 +2,7 @@ import os
 from prisma import Prisma
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path="../.env") # Points to the .env in the backend root
+load_dotenv(dotenv_path="./.env") # Points to the .env in the backend root
 
 db = Prisma(
     datasource={

@@ -1,7 +1,7 @@
 import os
 from typing import TypedDict, List
 from langgraph.graph import StateGraph, END
-from langchain_xai import ChatXAI
+# from langchain_xai import ChatXAI
 from langchain_groq import ChatGroq
 
 from database import db
@@ -22,19 +22,6 @@ llm = ChatGroq(
     temperature=0.4
 )
 
-# Node 1: Fetch User Data & Previous Summary
-# async def load_context(state: AgentState):
-#     user_id = state['user_id']
-    
-#     # Fetch onboarding data
-#     onboarding = await db.onboarding.find_unique(where={'userId': user_id})
-#     # Fetch previous chat summary
-#     chat_sum = await db.chatsummary.find_unique(where={'userId': user_id})
-    
-#     return {
-#         "user_profile": onboarding.dict() if onboarding else {},
-#         "summary": chat_sum.summary if chat_sum else "New user, no history."
-#     }
 # Node 1: Fetch User Data & Previous Summary
 async def load_context(state: AgentState):
     user_id = state['user_id']

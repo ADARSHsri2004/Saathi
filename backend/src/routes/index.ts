@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { OnboardingController } from '../controllers/onboardingController';
 import { DashboardController } from '../controllers/dashboardController';
-
+import { ChatController } from "../controllers/chatController";
 const router = Router();
 
 // Health check
@@ -19,5 +19,12 @@ router.post('/users/:userId/onboarding/complete', OnboardingController.completeO
 router.get('/users/:userId/dashboard/metrics', DashboardController.getDashboardMetrics);
 router.get('/users/:userId/dashboard/projections', DashboardController.getFutureProjections);
 router.post('/users/:userId/dashboard/relapse', DashboardController.recordRelapse);
+
+
+router.post(
+  "/users/:userId/chat",
+  ChatController.chatWithBot
+);
+
 
 export default router;

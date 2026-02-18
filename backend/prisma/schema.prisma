@@ -4,11 +4,6 @@
 generator client {
   provider = "prisma-client-js"
 }
-generator py {
-  provider = "prisma-client-py"
-  // This ensures the client is accessible to your Python code
-  interface = "asyncio"
-}
 
 datasource db {
   provider = "postgresql"
@@ -24,6 +19,7 @@ model User {
   onboarding        Onboarding?
   relapses          Relapse[]
   chatMemory        ChatMemory?
+  chats             Chat[]
 }
 
 model Onboarding {
@@ -79,4 +75,11 @@ model ChatMemory {
   createdAt     DateTime @default(now())
 }
 
-
+model Chat {
+  id        String   @id @default(uuid())
+  userId    String
+  message   String
+  reply     String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
