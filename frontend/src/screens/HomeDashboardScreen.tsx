@@ -500,6 +500,7 @@ export function HomeDashboardScreen() {
         activeKey="progress"
         onSelect={(key: BottomNavKey) => {
           if (key === 'games') navigation.navigate('Games');
+          if (key === 'rewards') navigation.navigate('Rewards');
         }}
         bottomInset={insets.bottom}
       />

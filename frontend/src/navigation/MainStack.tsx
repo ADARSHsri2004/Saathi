@@ -2,12 +2,14 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeDashboardScreen } from '@/screens/HomeDashboardScreen';
 import { GamesScreen } from '@/screens/GamesScreen';
+import { RewardsScreen } from '@/screens/RewardsScreen';
 import { FocusRecallGameWrapper } from './FocusRecallGameWrapper';
 import { colors } from '../theme';
 
 export type MainStackParamList = {
   HomeDashboard: undefined;
   Games: undefined;
+  Rewards: undefined;
   FocusRecallGame: undefined;
 };
 
@@ -23,6 +25,7 @@ export function MainStack() {
     >
       <Stack.Screen name="HomeDashboard" component={HomeDashboardScreen} />
       <Stack.Screen name="Games" component={GamesScreen} />
+      <Stack.Screen name="Rewards" component={RewardsScreen} />
       <Stack.Screen name="FocusRecallGame" component={FocusRecallGameWrapper} />
     </Stack.Navigator>
   );

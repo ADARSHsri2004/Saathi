@@ -6,3 +6,4 @@ export { IntentionDurationScreen } from './IntentionDurationScreen';
 export { CompleteScreen } from './CompleteScreen';
 export { HomeDashboardScreen } from './HomeDashboardScreen';
 export { GamesScreen } from './GamesScreen';
+export { RewardsScreen } from './RewardsScreen';
