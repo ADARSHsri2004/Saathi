@@ -220,6 +220,7 @@ export function HomeDashboardScreen() {
           onMenuPress={() => { }}
           onNotificationsPress={() => { }}
           onHelpPress={() => { }}
+          onSettingsPress={() => navigation.navigate('Settings')}
         />
       </View>
 

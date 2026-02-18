@@ -3,13 +3,17 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeDashboardScreen } from '@/screens/HomeDashboardScreen';
 import { GamesScreen } from '@/screens/GamesScreen';
 import { RewardsScreen } from '@/screens/RewardsScreen';
+import { SettingsScreen } from '@/screens/SettingsScreen';
 import { FocusRecallGameWrapper } from './FocusRecallGameWrapper';
+import { LocationShieldStack } from './LocationShieldStack';
 import { colors } from '../theme';
 
 export type MainStackParamList = {
   HomeDashboard: undefined;
   Games: undefined;
   Rewards: undefined;
+  Settings: undefined;
+  LocationShieldStack: undefined;
   FocusRecallGame: undefined;
 };
 
@@ -26,6 +30,8 @@ export function MainStack() {
       <Stack.Screen name="HomeDashboard" component={HomeDashboardScreen} />
       <Stack.Screen name="Games" component={GamesScreen} />
       <Stack.Screen name="Rewards" component={RewardsScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="LocationShieldStack" component={LocationShieldStack} />
       <Stack.Screen name="FocusRecallGame" component={FocusRecallGameWrapper} />
     </Stack.Navigator>
   );
