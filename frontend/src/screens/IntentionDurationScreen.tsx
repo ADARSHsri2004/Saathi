@@ -16,7 +16,7 @@ import type { Intention, Duration } from '../context/OnboardingContext';
 import { colors, typography, spacing } from '../theme';
 import type { OnboardingStackParamList } from '../navigation/OnboardingStack';
 
-type Nav = NativeStackNavigationProp<OnboardingStackParamList, 'IntentionDuration'>;
+type Nav = NativeStackNavigationProp<OnboardingStackParamList>;
 
 const INTENTION_OPTIONS: { id: Intention; label: string }[] = [
   { id: 'reduce', label: 'Reduce' },

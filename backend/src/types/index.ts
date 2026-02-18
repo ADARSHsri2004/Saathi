@@ -1,13 +1,8 @@
 // Types matching the frontend OnboardingContext
 
 export type AddictionType =
-  | 'social_media'
-  | 'gaming'
-  | 'porn'
   | 'alcohol'
-  | 'smoking'
-  | 'shopping'
-  | 'other';
+  | 'smoking';
 
 export type WhenItHappens =
   | 'stressed'

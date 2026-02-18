@@ -12,13 +12,8 @@ import type { OnboardingStackParamList } from '../navigation/OnboardingStack';
 type Nav = NativeStackNavigationProp<OnboardingStackParamList, 'AwarenessContext'>;
 
 const ADDICTION_OPTIONS: { id: AddictionType; label: string }[] = [
-  { id: 'social_media', label: 'Social media' },
-  { id: 'gaming', label: 'Gaming' },
-  { id: 'porn', label: 'Porn' },
-  { id: 'alcohol', label: 'Alcohol' },
   { id: 'smoking', label: 'Smoking' },
-  { id: 'shopping', label: 'Shopping' },
-  { id: 'other', label: 'Other' },
+  { id: 'alcohol', label: 'Alcohol' },
 ];
 
 const WHEN_OPTIONS: { id: WhenItHappens; label: string }[] = [

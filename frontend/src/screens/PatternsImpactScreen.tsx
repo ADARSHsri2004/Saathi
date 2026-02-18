@@ -9,7 +9,6 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -24,10 +23,6 @@ import { PrimaryButton, ProgressIndicator } from '../components/index';
 import { useOnboarding } from '../context/OnboardingContext';
 import type { FrequencyUnit, ImpactArea } from '../context/OnboardingContext';
 import { colors, typography, spacing, borderRadius } from '../theme/index';
-import type { OnboardingStackParamList } from '../navigation/OnboardingStack';
-import { useNavigation } from '@react-navigation/native';
-
-type Nav = NativeStackNavigationProp<OnboardingStackParamList, 'PatternsImpact'>;
 
 const FREQUENCY_UNIT_OPTIONS: { id: FrequencyUnit; label: string }[] = [
   { id: 'per_week', label: 'Per week' },
@@ -180,7 +175,6 @@ function FrequencySlider({
 }
 
 export function PatternsImpactScreen() {
-  const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const {
     state,
@@ -188,6 +182,9 @@ export function PatternsImpactScreen() {
     setFrequencyQuantity,
     setMoneySpent,
     setImpactAreas,
+    saveToBackend,
+    completeOnboarding,
+    markOnboardingComplete,
   } = useOnboarding();
   const [moneySpentError, setMoneySpentError] = React.useState('');
 
@@ -284,15 +281,21 @@ export function PatternsImpactScreen() {
 
       <View style={styles.ctaWrap}>
         <PrimaryButton
-          label="Next"
-          onPress={() => {
+          label="Get Started"
+          onPress={async () => {
             const trimmed = state.moneySpent?.trim() ?? '';
             if (!trimmed) {
               setMoneySpentError('Please enter how much you spend');
               return;
             }
             setMoneySpentError('');
-            navigation.navigate('IntentionDuration');
+            try {
+              await saveToBackend();
+              await completeOnboarding();
+              await markOnboardingComplete();
+            } catch (err) {
+              console.error('Failed to complete onboarding from PatternsImpactScreen:', err);
+            }
           }}
         />
       </View>
