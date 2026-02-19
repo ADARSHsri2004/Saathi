@@ -1,13 +1,22 @@
-generator py {
-  provider  = "prisma-client-py"
-  interface = "asyncio"
+// generator py {
+//   provider  = "prisma-client-py"
+//   interface = "asyncio"
+// }
+
+// datasource db {
+//   provider = "postgresql"
+//   url      = env("DATABASE_URL")
+// }
+
+generator client {
+  provider = "prisma-client-py"
+  output   = "../prisma_client"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
 
 model User {
   id                String   @id @default(cuid())
