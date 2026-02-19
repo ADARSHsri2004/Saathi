@@ -1,30 +1,11 @@
-"""
-Saathi AI Chat Graph
---------------------
-LangGraph pipeline for Saathi addiction recovery assistant.
-
-FLOW:
-1️⃣ load_context       → fetch user data + memory
-2️⃣ clarify_intent     → decide if clarification is ESSENTIAL
-3️⃣ ask_clarification  → ask critical question if needed
-4️⃣ chatbot            → generate healthcare recovery guidance
-5️⃣ update_summary     → store rolling clinical memory
-
-Design Goals:
-✔ Essential-only Human-in-the-Loop
-✔ Healthcare-grade behavioral coaching
-✔ Conversational memory with insights
-✔ Token-efficient long-term context
-"""
-
 import os
-from typing import TypedDict, List
+from typing import TypedDict, List, Optional
 from dotenv import load_dotenv
 
 from langgraph.graph import StateGraph, END
 from langchain_groq import ChatGroq
 
-from database import db
+# Note: database import removed to make graph stateless
 
 load_dotenv()
 
@@ -34,9 +15,9 @@ load_dotenv()
 class AgentState(TypedDict):
     user_id: str
     input: str
-    summary: str
-    user_profile: dict
-    relapses: List[str]
+    summary: str           # Passed from external backend
+    user_profile: dict     # Passed from external backend
+    relapses: List[str]    # Passed from external backend (formatted strings)
     response: str
     needs_clarification: bool
 
@@ -51,26 +32,15 @@ llm = ChatGroq(
 )
 
 # =========================
-# NODE 1: LOAD CONTEXT
+# NODE 1: LOAD CONTEXT (Stateless)
 # =========================
 async def load_context(state: AgentState):
-
-    user_id = state["user_id"]
-
-    user = await db.user.find_unique(where={"id": user_id})
-    if not user:
-        await db.user.create(data={"id": user_id, "displayName": "New User"})
-
-    onboarding = await db.onboarding.find_unique(where={"userId": user_id})
-    memory_record = await db.chatmemory.find_unique(where={"userId": user_id})
-    relapses = await db.relapse.find_many(where={"userId": user_id})
-
-    relapse_dates = [r.relapseDate.strftime("%d %b %Y") for r in relapses]
-
+    """
+    In this stateless version, data is already provided in the state 
+    by the FastAPI entry point. This node now simply initializes 
+    the control flags.
+    """
     return {
-        "user_profile": onboarding.__dict__ if onboarding else {},
-        "summary": memory_record.summary if memory_record else "",
-        "relapses": relapse_dates,
         "needs_clarification": False,
     }
 
@@ -79,10 +49,9 @@ async def load_context(state: AgentState):
 # =========================
 async def clarify_intent(state: AgentState):
     """
-    Decide whether a clarification question is ESSENTIAL
+    Decide whether a clarification question is ESSENTIAL 
     using message + memory context.
     """
-
     message = state["input"]
     memory = state.get("summary", "")
 
@@ -133,7 +102,6 @@ NO
 # NODE 3: ASK ESSENTIAL QUESTION
 # =========================
 async def ask_clarification(state: AgentState):
-
     question_prompt = f"""
 The user said:
 "{state['input']}"
@@ -146,9 +114,7 @@ Guidelines:
 • avoid multiple questions
 • keep under 15 words
 """
-
     res = await llm.ainvoke(question_prompt)
-
     return {"response": res.content}
 
 
@@ -156,7 +122,6 @@ Guidelines:
 # BUILD USER CONTEXT STRING
 # =========================
 def build_user_context(profile: dict, relapses: list) -> str:
-
     if not profile:
         return "No onboarding data available."
 
@@ -181,7 +146,6 @@ RELAPSE HISTORY:
 # NODE 4: CHATBOT RESPONSE
 # =========================
 async def chatbot(state: AgentState):
-
     if state.get("needs_clarification"):
         return state
 
@@ -247,9 +211,7 @@ HEALTH SAFETY
 LIMIT:
 Keep under 120 words unless steps are requested.
 """
-
     res = await llm.ainvoke(prompt)
-
     return {"response": res.content}
 
 
@@ -258,8 +220,8 @@ Keep under 120 words unless steps are requested.
 # =========================
 async def update_summary(state: AgentState):
     """
-    Store compressed conversational memory including:
-    AI questions + user answers + insights.
+    Synthesizes conversational memory. 
+    Returns the new summary back to the API instead of saving to DB.
     """
     summary_prompt = f"""
 ROLE: Conversational & Behavioral Memory Synthesizer.
@@ -271,65 +233,21 @@ EXISTING MEMORY:
 {state.get("summary","")}
 
 NEW INTERACTION:
-AI: {state["response"]}
+AI: {state.get("response", "")}
 User: {state["input"]}
 
 TASK:
-
 Update the memory by compressing important insights.
-
-Include when relevant:
-
-• personal facts shared (name, location, lifestyle)
-• health or addiction concerns
-• triggers & high-risk situations
-• beliefs about habits or coping
-• motivations and goals
-• coping needs & strategies discussed
-• recent important context
-
-If behavioral patterns are clear, you MAY include short markers such as:
-
-FACTS:
-TRIGGERS:
-BELIEFS:
-MOTIVATION:
-NEEDS:
-STRATEGIES:
-STATE:
-RISK:
-
-GUIDELINES:
-
-• keep memory concise and natural
-• markers optional — use only when useful
-• merge with existing memory
-• remove repetition and outdated info
-• preserve recent context
-• avoid rigid formatting
-• avoid full conversation detail
-• keep under 200 words
-• optimize for AI reasoning
-
-STYLE EXAMPLE:
-
-User drinks alcohol mainly on weekends and wants to reduce for better sleep. Social gatherings and stress increase intake. Believes drinking helps relaxation. Needs stress-relief alternatives; breathing exercises suggested. Currently motivated but binge risk during parties.
+Include personal facts, triggers, motivations, and strategies.
+Keep memory concise, natural, and under 200 words.
+Optimize for AI reasoning.
 
 Return only the updated memory.
 """
-
-
     res = await llm.ainvoke(summary_prompt)
     new_summary = res.content.strip()
 
-    await db.chatmemory.upsert(
-        where={"userId": state["user_id"]},
-        data={
-            "create": {"userId": state["user_id"], "summary": new_summary},
-            "update": {"summary": new_summary},
-        },
-    )
-
+    # We return the summary; the FastAPI handler will return this to your other backend
     return {"summary": new_summary}
 
 
@@ -357,12 +275,8 @@ builder.add_conditional_edges(
     },
 )
 
-# store Q&A memory even during clarification
 builder.add_edge("ask_clarification", "update_summary")
 builder.add_edge("chatbot", "update_summary")
 builder.add_edge("update_summary", END)
 
 chat_graph = builder.compile()
-
-
-
