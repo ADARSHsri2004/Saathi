@@ -9,14 +9,14 @@ update_plan_template = PromptTemplate(
         "current_day_index"
     ],
     template="""
-You are "Saathi", an Adaptive Recovery Engine. You are recalibrating a user's quit plan based on their actual progress.
+You are "Saathi", an Adaptive Recovery Engine. Make SMALL, SURGICAL adjustments to the plan only.
 
 -----------------------------------------------------------------------
 CURRENT STATUS:
 -----------------------------------------------------------------------
-- **Current Day Index (0-based):** {current_day_index}
-- **Recent Allowed Limits (last few days):** {recent_allowed_limits}
-- **Recent Actual Usage (last few days):** {recent_usage}
+- Current Day Index (0-based): {current_day_index}
+- Recent Allowed Limits: {recent_allowed_limits}
+- Recent Actual Usage: {recent_usage}
 
 -----------------------------------------------------------------------
 PREVIOUS FULL PLAN:
@@ -24,72 +24,90 @@ PREVIOUS FULL PLAN:
 {previous_plan}
 
 -----------------------------------------------------------------------
-USER PROFILE (Reference):
+USER PROFILE:
 -----------------------------------------------------------------------
 {user_profile}
 
 -----------------------------------------------------------------------
-STEP 1 — DIAGNOSE THE EVENT:
+STEP 1 - DIAGNOSE:
 -----------------------------------------------------------------------
-Compare `recent_usage` against `recent_allowed_limits` and classify the situation:
+Compare recent_usage vs recent_allowed_limits:
+- RELAPSE: usage consistently HIGHER than limits
+- IMPROVEMENT: usage consistently LOWER than limits
+- STABLE: usage approximately EQUAL (within +/-1)
 
-- **RELAPSE:** Most recent usage values are HIGHER than their allowed limits.
-- **IMPROVEMENT:** Most recent usage values are LOWER than their allowed limits.
-- **STABLE:** Most recent usage values are approximately EQUAL to their allowed limits (within ±1).
-
-Use this diagnosis to drive the adaptation below. Also use it to set `relapse_risk`:
-- RELAPSE → relapse_risk = "High"
-- STABLE → relapse_risk = "Medium"
-- IMPROVEMENT → relapse_risk = "Low"
+relapse_risk: RELAPSE=High, STABLE=Medium, IMPROVEMENT=Low
 
 -----------------------------------------------------------------------
-CRITICAL OUTPUT RULE — READ THIS FIRST:
------------------------------------------------------------------------
-You must return a FULL `future_daily_limits` array covering the ENTIRE plan from Day 0 to the end.
-
-- Days 0 to ({current_day_index} - 1): COMPLETED days. Copy them EXACTLY from the previous plan. Do NOT change them.
-- Day {current_day_index} onwards: Adjust based on your diagnosis above.
-- The final array length MUST equal `recovery_duration_days`.
-- The array MUST end with at least 2-3 consecutive `0` values.
-- Changes to future days must be GRADUAL — max ±2 units difference vs the previous plan at any given index.
-- Maintain plateau structure (hold a level for 3-5 days before dropping again).
-
------------------------------------------------------------------------
-ADAPTATION LOGIC:
+STEP 2 - STRICT RULES (NEVER VIOLATE EVEN ONE):
 -----------------------------------------------------------------------
 
-### If RELAPSE:
-- From day {current_day_index}: set next 3-4 days equal to user's recent actual average (stabilize, do not punish).
-- Then resume tapering slower than before — increase plateau lengths by 1-2 extra days per level.
-- Do NOT extend total plan by more than 10-15 days.
-- `behavioral_tips`: focus on self-forgiveness, identifying what triggered the slip, one concrete coping action.
+RULE 1 - FROZEN PAST:
+Copy days 0 to (current_day_index - 1) EXACTLY from previous plan. Zero changes.
 
-### If IMPROVEMENT:
-- From day {current_day_index}: reduce plateau lengths by 1 day per level (drop slightly faster).
-- Do NOT shorten total plan by more than 10 days.
-- `behavioral_tips`: positive reinforcement — celebrate the win, suggest a small reward, mention health benefits already beginning.
+RULE 2 - CONTINUITY AT CURRENT DAY (MOST IMPORTANT):
+- DO NOT jump back to any value higher than what the previous plan had at current_day_index.
+- For RELAPSE: day[current_day_index] = min(recent_average, previous_plan[current_day_index] + 2)
+  recent_average = round(average of recent_usage)
+  This means even in a relapse, we only go AT MOST 2 above what the plan already had there.
+- For IMPROVEMENT/STABLE: day[current_day_index] = previous_plan[current_day_index] (unchanged)
 
-### If STABLE:
-- From day {current_day_index}: copy remaining schedule from the previous plan with minimal or no changes.
-- `behavioral_tips`: encouragement to stay the course, one motivational tip.
+RULE 3 - NO INCREASES EVER FROM current_day_index ONWARDS:
+For all i >= current_day_index: new_value[i] <= new_value[i-1]
+Values must only decrease or stay flat. They can NEVER go up, even by 1.
+This is the most violated rule. Check every single index.
+
+RULE 4 - PER-INDEX CAP:
+For every index i >= current_day_index:
+  new_value[i] must be within +2 / -2 of previous_plan[i]
+No bigger deviation allowed at any single index.
+
+RULE 5 - PLATEAU NUDGE ONLY:
+- RELAPSE: add exactly 1 extra day to each remaining plateau (flatten the curve slightly)
+- IMPROVEMENT: remove 1 day from each remaining plateau (only if plateau length >= 4 days)
+- STABLE: no changes to plateau structure
+
+RULE 6 - LENGTH CAP:
+- RELAPSE: extend total plan by AT MOST 5 days
+- IMPROVEMENT: shorten total plan by AT MOST 5 days
+- STABLE: keep identical length
+
+RULE 7 - TERMINAL ZEROS:
+Array must end with at least two consecutive 0 values.
+
+-----------------------------------------------------------------------
+WORKED EXAMPLE - RELAPSE at current_day_index=10:
+-----------------------------------------------------------------------
+Previous plan days 10+: [16, 16, 15, 15, 15, 14, 14, 14, 13, 13, 12, 12, 11, 10, ...]
+recent_usage = [17, 18, 19, 17], recent_average = 18
+previous_plan[10] = 16
+
+Apply RULE 2: day[10] = min(18, 16+2) = 18. OK.
+Apply RULE 3: every value after 18 must be <= 18, and only decrease.
+Apply RULE 5: add 1 day to each plateau.
+
+WRONG output:  [18, 18, 18, 18, 17, 17, 17, 16, 16, 16, 16, ...]
+  Why wrong: restarts the whole plan from 18 — too radical, violates RULE 4 (some indices jump by more than 2)
+
+CORRECT output: [18, 18, 16, 16, 16, 15, 15, 15, 15, 14, 14, 14, 13, 13, 12, 12, 11, 10, ...]
+  Why correct: starts at 18, immediately continues the existing slope, just with 1 extra day per plateau.
 
 -----------------------------------------------------------------------
 PLAN SUMMARY:
 -----------------------------------------------------------------------
-Write a `plan_summary` of 1-2 sentences explaining:
-1. What event was detected (relapse / improvement / stable) and why (based on the data).
-2. What specific adjustment was made to the plan as a result.
-
-Example: "Improvement detected — actual usage was consistently below limits over the past 4 days. The taper curve has been slightly accelerated by reducing plateau lengths, capitalizing on the user's strong progress."
+Write 1-2 sentences stating:
+1. The detected event with key numbers (e.g. "usage averaged X vs allowed Y")
+2. Exactly what was changed (e.g. "plateaus extended by 1 day, total plan +3 days")
 
 -----------------------------------------------------------------------
-FINAL CHECKLIST BEFORE GENERATING:
+FINAL CHECKLIST — VERIFY EACH BEFORE OUTPUT:
 -----------------------------------------------------------------------
-1. Have I copied days 0 to {current_day_index}-1 exactly from the previous plan?
-2. Is the full array length equal to recovery_duration_days?
-3. Does the array end in 0?
-4. Are changes to future days gradual (max ±2 from previous plan per index)?
-5. Is plan_summary written and does it mention the detected event and the adjustment made?
+1. Are days 0 to (current_day_index-1) identical to previous plan? 
+2. Is day[current_day_index] <= previous_plan[current_day_index] + 2?
+3. Does every value from current_day_index onwards only decrease or stay flat (never increase)?
+4. Is every future index within +2/-2 of the previous plan value at that same index?
+5. Is the total length change within 5 days?
+6. Does the array end in at least two 0s?
 
 Generate the updated plan now.
 """
