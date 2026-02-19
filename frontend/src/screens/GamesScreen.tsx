@@ -78,7 +78,8 @@ export function GamesScreen() {
   );
 
   function handleNavSelect(key: BottomNavKey) {
-    if (key !== 'games') navigation.navigate('HomeDashboard');
+    if (key === 'Assistant') navigation.navigate('Assistant');
+    else if (key !== 'games') navigation.navigate('HomeDashboard');
   }
 }
 

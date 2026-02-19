@@ -502,6 +502,7 @@ export function HomeDashboardScreen() {
         onSelect={(key: BottomNavKey) => {
           if (key === 'games') navigation.navigate('Games');
           if (key === 'rewards') navigation.navigate('Rewards');
+          if (key === 'Assistant') navigation.navigate('Assistant');
         }}
         bottomInset={insets.bottom}
       />

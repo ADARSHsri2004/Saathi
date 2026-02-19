@@ -394,3 +394,64 @@ export class RewardsApi {
   }
 }
 
+export type AssistantRiskLevel = 'calm' | 'high_risk' | 'achievement';
+export type GreetingHint = 'default' | 'proactive' | 'congratulatory';
+
+export interface AssistantContextResponse {
+  displayName: string;
+  streak: number;
+  riskLevel: AssistantRiskLevel;
+  greetingHint: GreetingHint;
+}
+
+export interface ChatHistoryItem {
+  id: string;
+  message: string;
+  reply: string;
+  createdAt: string;
+}
+
+export interface SendChatResponse {
+  id: string;
+  userId: string;
+  message: string;
+  reply: string;
+  createdAt: string;
+}
+
+export class AssistantApi {
+  static async getContext(userId: string) {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/assistant/context`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data: ApiResponse<AssistantContextResponse> = await response.json();
+    if (!data.success) throw new Error(data.error || 'Failed to get assistant context');
+    return data.data!;
+  }
+
+  static async getChatHistory(userId: string) {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/chat/history`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data: ApiResponse<ChatHistoryItem[]> = await response.json();
+    if (!data.success) throw new Error(data.error || 'Failed to get chat history');
+    return data.data!;
+  }
+
+  static async sendMessage(userId: string, message: string) {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data: ApiResponse<SendChatResponse> = await response.json();
+    if (!data.success) throw new Error(data.error || 'Failed to send message');
+    return data.data!;
+  }
+}
+

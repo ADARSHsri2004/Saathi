@@ -22,6 +22,8 @@ router.get('/users/:userId/dashboard/projections', DashboardController.getFuture
 router.post('/users/:userId/dashboard/relapse', DashboardController.recordRelapse);
 
 
+router.get("/users/:userId/chat/history", ChatController.getChatHistory);
+router.get("/users/:userId/assistant/context", ChatController.getAssistantContext);
 router.post(
   "/users/:userId/chat",
   ChatController.chatWithBot

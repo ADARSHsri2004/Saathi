@@ -118,6 +118,7 @@ export function RewardsScreen() {
           onSelect={(key: BottomNavKey) => {
             if (key === 'progress') navigation.navigate('HomeDashboard');
             if (key === 'games') navigation.navigate('Games');
+            if (key === 'Assistant') navigation.navigate('Assistant');
           }}
           bottomInset={insets.bottom}
         />
@@ -139,6 +140,7 @@ export function RewardsScreen() {
           onSelect={(key: BottomNavKey) => {
             if (key === 'progress') navigation.navigate('HomeDashboard');
             if (key === 'games') navigation.navigate('Games');
+            if (key === 'Assistant') navigation.navigate('Assistant');
           }}
           bottomInset={insets.bottom}
         />
@@ -219,6 +221,7 @@ export function RewardsScreen() {
         onSelect={(key: BottomNavKey) => {
           if (key === 'progress') navigation.navigate('HomeDashboard');
           if (key === 'games') navigation.navigate('Games');
+          if (key === 'Assistant') navigation.navigate('Assistant');
         }}
         bottomInset={insets.bottom}
       />
