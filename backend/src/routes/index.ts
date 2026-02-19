@@ -3,6 +3,7 @@ import { OnboardingController } from '../controllers/onboardingController';
 import { DashboardController } from '../controllers/dashboardController';
 import { ChatController } from "../controllers/chatController";
 import { RewardsController } from '../controllers/rewardsController';
+import { CompanionController } from '../controllers/companionController';
 const router = Router();
 
 // Health check
@@ -30,5 +31,9 @@ router.post(
 );
 
 router.get('/users/:userId/rewards', RewardsController.getRewards);
+
+router.get('/users/:userId/companion', CompanionController.get);
+router.post('/users/:userId/companion', CompanionController.add);
+router.delete('/users/:userId/companion', CompanionController.remove);
 
 export default router;

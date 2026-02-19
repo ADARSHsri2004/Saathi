@@ -217,10 +217,11 @@ export function HomeDashboardScreen() {
         <AppHeader
           title="Welcome back"
           elevated={headerElevated}
-          onMenuPress={() => { }}
-          onNotificationsPress={() => { }}
-          onHelpPress={() => { }}
+          onMenuPress={() => {}}
+          onNotificationsPress={() => {}}
+          onHelpPress={() => {}}
           onSettingsPress={() => navigation.navigate('Settings')}
+          onCompanionPress={() => navigation.navigate('Companion')}
         />
       </View>
 

@@ -37,6 +37,7 @@ export function GamesScreen() {
           onMenuPress={() => {}}
           onNotificationsPress={() => {}}
           onHelpPress={() => {}}
+          onCompanionPress={() => navigation.navigate('Companion')}
         />
       </View>
       <View
