@@ -7,15 +7,20 @@ from schemas.output_schema import RecoveryPlanOutput
 def generate_initial_plan_chain(input_data: PlanGenerationInput) -> RecoveryPlanOutput:
     llm = get_gemini_model()
 
-    # 1. BIND THE SCHEMA: This replaces the parser
-    structured_llm = llm.with_structured_output(RecoveryPlanOutput)
+    # Bind schema with json_mode for reliable Gemini structured output
+    structured_llm = llm.with_structured_output(RecoveryPlanOutput, method="json_mode")
 
-    # 2. Create Chain (Simpler: Prompt -> Structured LLM)
     chain = initial_plan_template | structured_llm
 
-    # 3. Prepare Data
-    input_dict = input_data.model_dump()
-    input_dict['triggers'] = ", ".join(input_data.triggers)
-    input_dict['locations'] = ", ".join(input_data.locations)
+    # Build input dict — only fields that exist in the new schema
+    input_dict = {
+        "addiction_type": input_data.addiction_type,
+        "daily_consumption": input_data.daily_consumption,
+        "years_of_addiction": input_data.years_of_addiction,
+        "ftnd_score": input_data.ftnd_score if input_data.ftnd_score is not None else "Not provided",
+        "dependence_level": input_data.dependence_level if input_data.dependence_level is not None else "Not assessed",
+        "triggers": ", ".join(input_data.triggers) if input_data.triggers else "None reported",
+        "age": input_data.age if input_data.age is not None else "Not provided",
+    }
 
     return chain.invoke(input_dict)
