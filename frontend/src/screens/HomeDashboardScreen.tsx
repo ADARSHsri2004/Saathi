@@ -500,6 +500,7 @@ export function HomeDashboardScreen() {
       <BottomNav
         activeKey="progress"
         onSelect={(key: BottomNavKey) => {
+          if (key === 'planner') navigation.navigate('PlannerStack');
           if (key === 'games') navigation.navigate('Games');
           if (key === 'rewards') navigation.navigate('Rewards');
           if (key === 'Assistant') navigation.navigate('Assistant');

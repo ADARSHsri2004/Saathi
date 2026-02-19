@@ -7,6 +7,7 @@ import { SettingsScreen } from '@/screens/SettingsScreen';
 import { AssistantScreen } from '@/screens/AssistantScreen';
 import { FocusRecallGameWrapper } from './FocusRecallGameWrapper';
 import { LocationShieldStack } from './LocationShieldStack';
+import { PlannerStack } from './PlannerStack';
 import { colors } from '../theme';
 
 export type MainStackParamList = {
@@ -17,6 +18,7 @@ export type MainStackParamList = {
   Assistant: undefined;
   LocationShieldStack: undefined;
   FocusRecallGame: undefined;
+  PlannerStack: undefined;
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -36,6 +38,7 @@ export function MainStack() {
       <Stack.Screen name="Assistant" component={AssistantScreen} />
       <Stack.Screen name="LocationShieldStack" component={LocationShieldStack} />
       <Stack.Screen name="FocusRecallGame" component={FocusRecallGameWrapper} />
+      <Stack.Screen name="PlannerStack" component={PlannerStack} />
     </Stack.Navigator>
   );
 }

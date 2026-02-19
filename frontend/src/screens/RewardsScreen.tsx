@@ -116,6 +116,7 @@ export function RewardsScreen() {
         <BottomNav
           activeKey="rewards"
           onSelect={(key: BottomNavKey) => {
+            if (key === 'planner') navigation.navigate('PlannerStack');
             if (key === 'progress') navigation.navigate('HomeDashboard');
             if (key === 'games') navigation.navigate('Games');
             if (key === 'Assistant') navigation.navigate('Assistant');
@@ -138,6 +139,7 @@ export function RewardsScreen() {
         <BottomNav
           activeKey="rewards"
           onSelect={(key: BottomNavKey) => {
+            if (key === 'planner') navigation.navigate('PlannerStack');
             if (key === 'progress') navigation.navigate('HomeDashboard');
             if (key === 'games') navigation.navigate('Games');
             if (key === 'Assistant') navigation.navigate('Assistant');
