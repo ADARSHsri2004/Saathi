@@ -17,6 +17,6 @@ def update_plan_chain(input_data: PlanUpdateInput) -> RecoveryPlanOutput:
         "previous_plan": input_data.previous_plan.model_dump_json(indent=2),
         "recent_usage": str(input_data.recent_usage),
         "recent_allowed_limits": str(input_data.recent_allowed_limits),
-        "event_type": input_data.event_type,
         "current_day_index": input_data.current_day_index,
+        # event_type removed — LLM infers it from recent_usage vs recent_allowed_limits
     })

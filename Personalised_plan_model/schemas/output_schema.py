@@ -22,6 +22,11 @@ class AIRecommendations(BaseModel):
 
 
 class RecoveryPlanOutput(BaseModel):
+    plan_summary: str = Field(
+        ...,
+        description="1-2 line human-readable explanation of why this plan was generated and what approach it takes. E.g. 'A gradual 60-day taper was designed due to moderate-high dependence and stress triggers. The plan prioritizes slow reduction plateaus to minimize withdrawal discomfort.'"
+    )
+
     addiction_severity: str = Field(
         ...,
         description="Low / Moderate / High"

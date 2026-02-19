@@ -30,9 +30,4 @@ class PlanUpdateInput(BaseModel):
         description="Current day index in the full recovery plan (0-based). Days before this index are already completed and must not change."
     )
 
-    # relapse or improvement signal
-    event_type: str = Field(
-        ...,
-        description="relapse | improvement | stable",
-        json_schema_extra={"example": "relapse"}
-    )
+    # event_type removed — LLM will infer relapse/improvement/stable from the data itself
