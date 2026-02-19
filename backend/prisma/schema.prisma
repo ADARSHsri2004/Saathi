@@ -20,6 +20,18 @@ model User {
   relapses          Relapse[]
   chatMemory        ChatMemory?
   chats             Chat[]
+  recoveryCompanion RecoveryCompanion?
+}
+
+model RecoveryCompanion {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  phone        String
+  countryCode  String
+  permissions  String[]
+  createdAt    DateTime @default(now())
 }
 
 model Onboarding {

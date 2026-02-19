@@ -153,7 +153,8 @@ export class ChatController {
       }
 
       // 1️⃣ Fetch all necessary context from Database
-      const [onboarding, memory, relapses] = await Promise.all([
+      const [userdata,onboarding, memory, relapses] = await Promise.all([
+        prisma.user.findUnique({ where: { id: userId }, select: { displayName: true , age: true } }),
         prisma.onboarding.findUnique({ where: { userId } }),
         prisma.chatMemory.findUnique({ where: { userId } }),
         prisma.relapse.findMany({ 
@@ -174,6 +175,8 @@ export class ChatController {
         message: message,
         summary: memory?.summary || "",
         user_profile: {
+          username: userdata?.displayName || "there",
+          age:userdata?.age || null,
           addictionTypes: onboarding?.addictionTypes || [],
           whenItHappens: onboarding?.whenItHappens || [],
           feelAfter: onboarding?.feelAfter || "",

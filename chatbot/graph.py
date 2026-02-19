@@ -125,7 +125,13 @@ def build_user_context(profile: dict, relapses: list) -> str:
     if not profile:
         return "No onboarding data available."
 
+    username = profile.get("username", "")
+
+    name_line = f"User name: {username}" if username else ""
+
     return f"""
+{name_line}
+
 ADDICTION PROFILE:
 - Types: {', '.join(profile.get('addictionTypes', []))}
 - Triggers: {', '.join(profile.get('whenItHappens', []))}
@@ -140,6 +146,7 @@ RELAPSE HISTORY:
 - Total: {len(relapses)}
 - Recent: {relapses[:5]}
 """
+
 
 
 # =========================
@@ -181,8 +188,11 @@ EMPATHY
 • use collaborative tone (“Let’s explore…”)
 
 PERSONALIZATION
+• if the user's name is known, use it naturally and sparingly
+• avoid repeating the name in every sentence
 • use known triggers & motivations
 • acknowledge effort & progress
+• if the user's name is known, use it naturally and sparingly
 
 CRAVINGS & URGES
 • suggest immediate coping strategies
@@ -224,26 +234,78 @@ async def update_summary(state: AgentState):
     Returns the new summary back to the API instead of saving to DB.
     """
     summary_prompt = f"""
-ROLE: Conversational & Behavioral Memory Synthesizer.
+ROLE: Conversational Memory Synthesizer.
 
 GOAL:
-Maintain a compact memory of the user and conversation.
+Maintain a concise conversational memory that preserves:
+1. recent AI–user dialogue flow
+2. behavioral insights for recovery guidance
 
 EXISTING MEMORY:
 {state.get("summary","")}
 
 NEW INTERACTION:
-AI: {state.get("response", "")}
+AI: {state.get("response","")}
 User: {state["input"]}
 
 TASK:
-Update the memory by compressing important insights.
-Include personal facts, triggers, motivations, and strategies.
-Keep memory concise, natural, and under 200 words.
-Optimize for AI reasoning.
+
+Update the memory with TWO parts:
+
+━━━━━━━━━━━━━━━━━━
+RECENT DIALOGUE
+━━━━━━━━━━━━━━━━━━
+• capture key AI questions or guidance
+• capture user's important responses
+• preserve conversational continuity
+• compress into short phrases
+• keep only the last 3–5 key exchanges
+
+━━━━━━━━━━━━━━━━━━
+INSIGHTS
+━━━━━━━━━━━━━━━━━━
+Update when relevant:
+
+NAME:
+FACTS:
+TRIGGERS:
+BELIEFS:
+MOTIVATION:
+NEEDS:
+STRATEGIES:
+STATE:
+RISK:
+
+GUIDELINES:
+
+• keep concise and meaningful
+• no full conversation transcripts
+• compress dialogue into short phrases
+• merge with existing memory
+• remove repetition & outdated info
+• prioritize new important insights
+• keep total memory under 120 words
+• optimize for AI understanding
+
+FORMAT EXAMPLE:
+
+RECENT:
+AI asked about triggers; user said stress after work.
+Cravings at night; breathing exercise suggested.
+User wants to quit for health.
+
+INSIGHTS EXAMPLES:
+NAME: John
+FACTS: smoking or alcohol or tobacco
+TRIGGERS: stress, after meals
+BELIEFS: smoking improves focus
+MOTIVATION: health
+STRATEGIES: breathing exercise suggested
+STATE: motivated but struggling
 
 Return only the updated memory.
 """
+
     res = await llm.ainvoke(summary_prompt)
     new_summary = res.content.strip()
 

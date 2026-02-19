@@ -1,4 +1,6 @@
 import os
+from pydantic import BaseModel, Field
+from typing import List, Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
@@ -13,14 +15,16 @@ app = FastAPI(title="Saathi Stateless AI Service")
 
 class UserProfile(BaseModel):
     """Matches the onboarding data structure previously in DB"""
-    addictionTypes: List[str] = []
-    whenItHappens: List[str] = []
+    username: Optional[str] = None
+    age: Optional[int] = None
+    addictionTypes: List[str] = Field(default_factory=list)
+    whenItHappens: List[str] = Field(default_factory=list)
     feelAfter: Optional[str] = ""
     frequency: Optional[str] = ""
     frequencyQuantity: Optional[str] = ""
     frequencyUnit: Optional[str] = ""
     moneySpentPerDay: Optional[str] = "0"
-    impactAreas: List[str] = []
+    impactAreas: List[str] = Field(default_factory=list)
     intention: Optional[str] = ""
     journeyStartDate: Optional[str] = ""
 
@@ -48,6 +52,7 @@ async def ask_bot(req: ChatRequest):
             "user_profile": req.user_profile.model_dump(),
             "relapses": req.relapses
         }
+        print(f"Received chat request: {inputs}")  # Debug log
         
         # Invoke the graph. Thread ID is kept for LangGraph internal tracking.
         config = {"configurable": {"thread_id": req.user_id}}

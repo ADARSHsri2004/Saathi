@@ -39,6 +39,7 @@ export function SettingsScreen() {
           onMenuPress={() => {}}
           onNotificationsPress={() => {}}
           onHelpPress={() => {}}
+          onCompanionPress={() => navigation.navigate('Companion')}
         />
       </View>
       <ScrollView
