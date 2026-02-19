@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import axios from "axios";
 import { PrismaClient } from "@prisma/client";
 
+const ChatbotAPI = process.env.ChatbotAPI || 'http://localhost:8000';
+
 const prisma = new PrismaClient();
 
 export class ChatController {
@@ -101,7 +103,7 @@ export class ChatController {
 
       // 🔥 Call FastAPI chatbot
       const chatbotResponse = await axios.post(
-        "http://localhost:8000/api/chatbot/ask",
+        `${ChatbotAPI}/api/chatbot/ask`,
         {
           user_id: userId,
           message: message,
