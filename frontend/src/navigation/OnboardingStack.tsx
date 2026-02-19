@@ -5,7 +5,6 @@ import {
   BasicDetailsScreen,
   AwarenessContextScreen,
   PatternsImpactScreen,
-  IntentionDurationScreen,
   CompleteScreen,
 } from '../screens/index';
 import { colors } from '../theme/index';
@@ -15,7 +14,6 @@ export type OnboardingStackParamList = {
   BasicDetails: undefined;
   AwarenessContext: undefined;
   PatternsImpact: undefined;
-  IntentionDuration: undefined;
   Complete: undefined;
 };
 
@@ -35,7 +33,6 @@ export function OnboardingStack() {
       <Stack.Screen name="BasicDetails" component={BasicDetailsScreen} />
       <Stack.Screen name="AwarenessContext" component={AwarenessContextScreen} />
       <Stack.Screen name="PatternsImpact" component={PatternsImpactScreen} />
-      <Stack.Screen name="IntentionDuration" component={IntentionDurationScreen} />
       <Stack.Screen
         name="Complete"
         component={CompleteScreen}

@@ -3,13 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OnboardingApi } from '../services/api';
 
 export type AddictionType =
-  | 'social_media'
-  | 'gaming'
-  | 'porn'
   | 'alcohol'
-  | 'smoking'
-  | 'shopping'
-  | 'other';
+  | 'smoking';
 
 export type WhenItHappens =
   | 'stressed'
@@ -288,15 +283,15 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   // }, []);
 
   const markOnboardingComplete = useCallback(async () => {
-  setIsOnboardingComplete(true);
+    setIsOnboardingComplete(true);
 
-  try {
-    await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
-    await AsyncStorage.setItem(USER_ID_KEY, state.userId);
-  } catch (err) {
-    console.error('Failed to persist onboarding status:', err);
-  }
-}, [state.userId]);
+    try {
+      await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+      await AsyncStorage.setItem(USER_ID_KEY, state.userId);
+    } catch (err) {
+      console.error('Failed to persist onboarding status:', err);
+    }
+  }, [state.userId]);
 
   const value: OnboardingContextValue = {
     state,

@@ -20,8 +20,9 @@
     "scheme": "saathi",
     "extra": {
       "eas": {
-        "projectId": "699753ab-b803-42bb-aa07-7967beeb7557"
+        "projectId": "25f233f2-ebea-4c72-8ed9-46c200353a43"
       }
-    }
+    },
+    "owner": "abhaysri619"
   }
 }

@@ -18,6 +18,8 @@ model User {
   updatedAt         DateTime @updatedAt
   onboarding        Onboarding?
   relapses          Relapse[]
+  chatMemory        ChatMemory?
+  chats             Chat[]
 }
 
 model Onboarding {
@@ -64,3 +66,20 @@ model Relapse {
   @@index([userId])
 }
 
+model ChatMemory {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  summary       String   @default("")   // rolling conversation summary
+  lastUpdated   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+}
+
+model Chat {
+  id        String   @id @default(uuid())
+  userId    String
+  message   String
+  reply     String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}

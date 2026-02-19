@@ -1,18 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { colors, spacing, typography } from '../theme';
 
 export type BottomNavKey =
   | 'planner'
   | 'rewards'
   | 'progress'
-  | 'voice'
+  | 'Assistant'
   | 'games';
 
 type NavItem = {
@@ -44,15 +45,21 @@ function NavButton({
     transform: [{ scale: scale.value }],
   }));
 
+  const isAssistant = item.key === 'Assistant';
   return (
     <AnimatedPressable
       onPressIn={() => {
-        scale.value = withTiming(0.95, { duration: 80 });
+        scale.value = withTiming(isAssistant ? 0.96 : 0.95, { duration: 80 });
       }}
       onPressOut={() => {
         scale.value = withTiming(1, { duration: 140 });
       }}
-      onPress={onPress}
+      onPress={() => {
+        if (isAssistant && Platform.OS === 'ios') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+        onPress();
+      }}
       style={[styles.navItem, animatedStyle, active && styles.navItemActive]}
     >
       <View style={[styles.iconWrap, active && styles.iconWrapActive]}>{item.icon}</View>
@@ -79,8 +86,8 @@ export function BottomNav({ activeKey, onSelect, bottomInset = 0 }: BottomNavPro
       icon: <Ionicons name="pulse" size={18} color={colors.accent} />,
     },
     {
-      key: 'voice',
-      label: 'AI Voice',
+      key: 'Assistant',
+      label: 'Assistant',
       icon: <MaterialCommunityIcons name="microphone-outline" size={18} color={colors.textSecondary} />,
     },
     {

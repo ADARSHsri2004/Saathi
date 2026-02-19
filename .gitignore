@@ -3,3 +3,5 @@ node_modules
 .cursor
 .venv
 .vscode
+venv
+__pycache__
