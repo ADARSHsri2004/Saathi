@@ -38,6 +38,7 @@ type AppHeaderProps = {
   onHelpPress?: () => void;
   onProfilePress?: () => void;
   onSettingsPress?: () => void;
+  onProfessionPress?: () => void;
   onCompanionPress?: () => void;
   onAboutPress?: () => void;
   elevated?: boolean;
@@ -50,6 +51,7 @@ export function AppHeader({
   onHelpPress,
   onProfilePress,
   onSettingsPress,
+  onProfessionPress,
   onCompanionPress,
   onAboutPress,
   elevated = false,
@@ -112,6 +114,12 @@ export function AppHeader({
       label: 'Profile',
       icon: <Feather name="user" size={22} color={colors.accent} />,
       onPress: onProfilePress,
+    },
+    {
+      id: 'profession',
+      label: 'Profession',
+      icon: <MaterialCommunityIcons name="briefcase" size={22} color={colors.accent} />,
+      onPress: onProfessionPress,
     },
     {
       id: 'settings',
