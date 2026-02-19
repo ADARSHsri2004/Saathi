@@ -1,14 +1,14 @@
-import React, { useRef, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  Dimensions,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../navigation/MainStack';
 import Animated, {
@@ -17,9 +17,8 @@ import Animated, {
   interpolate,
   useAnimatedStyle,
 } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { colors, spacing, typography, borderRadius } from '../theme';
+import { colors, spacing, typography } from '../theme';
 import {
   HeroSection,
   LevelProgressBar,
@@ -32,91 +31,56 @@ import {
 } from '../components/rewards';
 import { BottomNav } from '../components/BottomNav';
 import type { BottomNavKey } from '../components/BottomNav';
-import { getResponsiveSpacing, isSmallScreen } from '../utils/responsive';
+import { RewardsApi, type RewardsResponse } from '../services/api';
+import { isSmallScreen } from '../utils/responsive';
 
-const MOCK_BADGES: Badge[] = [
-  {
-    id: 'consistency-7',
-    category: 'consistency',
-    title: 'Week Warrior',
-    description: '7 days of consistent progress',
-    icon: 'calendar-check',
-    unlocked: true,
-    progress: 1,
-    unlockCondition: 'Complete 7 consecutive days',
-    motivationalLine: 'Consistency is your superpower',
-  },
-  {
-    id: 'resilience-1',
-    category: 'resilience',
-    title: 'First Step',
-    description: 'Overcame your first urge',
-    icon: 'shield-check',
-    unlocked: true,
-    progress: 1,
-    unlockCondition: 'Resist your first strong urge',
-    motivationalLine: 'Every journey begins with one step',
-  },
-  {
-    id: 'self-control-30',
-    category: 'self-control',
-    title: 'Month Master',
-    description: '30 days of self-control',
-    icon: 'hand-okay',
-    unlocked: false,
-    progress: 0.75,
-    unlockCondition: 'Complete 30 days without relapse',
-    motivationalLine: 'You are stronger than your urges',
-  },
-  {
-    id: 'growth-100',
-    category: 'growth',
-    title: 'Century Champion',
-    description: '100 days of growth',
-    icon: 'trending-up',
-    unlocked: false,
-    progress: 0.45,
-    unlockCondition: 'Reach 100 days of recovery',
-    motivationalLine: 'Growth happens one day at a time',
-  },
-];
-
-const MOCK_REWARDS = [
-  {
-    id: 'theme-dark',
-    title: 'Dark Theme',
-    description: 'Unlock premium dark mode',
-    icon: 'moon',
-    unlocked: true,
-    cost: 500,
-  },
-  {
-    id: 'theme-nature',
-    title: 'Nature Theme',
-    description: 'Calming nature backgrounds',
-    icon: 'leaf',
-    unlocked: false,
-    cost: 1000,
-  },
-  {
-    id: 'avatar-premium',
-    title: 'Premium Avatar',
-    description: 'Exclusive avatar frames',
-    icon: 'account-star',
-    unlocked: false,
-    cost: 2000,
-  },
-];
+const USER_ID_KEY = 'user_id';
 
 type NavProp = NativeStackNavigationProp<MainStackParamList, 'Rewards'>;
+
+const BADGE_SECTIONS: { title: string; category: Badge['category'] }[] = [
+  { title: 'Consistency', category: 'consistency' },
+  { title: 'Resilience', category: 'resilience' },
+  { title: 'Self-Control', category: 'self-control' },
+  { title: 'Growth', category: 'growth' },
+];
 
 export function RewardsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavProp>();
   const scrollY = useSharedValue(0);
+  const [data, setData] = useState<RewardsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
   const [badgeSheetVisible, setBadgeSheetVisible] = useState(false);
-  const bottomSheetRef = useRef<any>(null);
+
+  const fetchRewards = useCallback(async () => {
+    const userId = await AsyncStorage.getItem(USER_ID_KEY);
+    if (!userId) {
+      setError('User ID not found. Please complete onboarding first.');
+      setData(null);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const rewardsData = await RewardsApi.getRewards(userId);
+      setData(rewardsData);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load rewards');
+      setData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchRewards();
+    }, [fetchRewards])
+  );
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -142,6 +106,52 @@ export function RewardsScreen() {
     return { opacity };
   });
 
+  if (isLoading && !data) {
+    return (
+      <View style={styles.screen}>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={styles.loadingText}>Loading rewards...</Text>
+        </View>
+        <BottomNav
+          activeKey="rewards"
+          onSelect={(key: BottomNavKey) => {
+            if (key === 'progress') navigation.navigate('HomeDashboard');
+            if (key === 'games') navigation.navigate('Games');
+          }}
+          bottomInset={insets.bottom}
+        />
+      </View>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <View style={styles.screen}>
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.retryHint} onPress={fetchRewards}>
+            Tap to retry
+          </Text>
+        </View>
+        <BottomNav
+          activeKey="rewards"
+          onSelect={(key: BottomNavKey) => {
+            if (key === 'progress') navigation.navigate('HomeDashboard');
+            if (key === 'games') navigation.navigate('Games');
+          }}
+          bottomInset={insets.bottom}
+        />
+      </View>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const { moneySaved, badges, rewards, weeklyGrowth } = data;
+
   return (
     <View style={styles.screen}>
       <Animated.ScrollView
@@ -155,62 +165,44 @@ export function RewardsScreen() {
       >
         <Animated.View style={heroOpacity}>
           <HeroSection
-            streak={42}
-            level={5}
-            xp={1250}
-            xpToNextLevel={1500}
-            identityTitle="Warrior"
+            streak={data.streak}
+            level={data.level}
+            xp={data.xp}
+            xpToNextLevel={data.xpToNextLevel}
+            identityTitle={data.identityTitle}
           />
         </Animated.View>
 
         <View style={styles.content}>
           <LevelProgressBar
-            level={5}
-            xp={1250}
-            xpToNextLevel={1500}
+            level={data.level}
+            xp={data.xp}
+            xpToNextLevel={data.xpToNextLevel}
             scrollY={scrollY}
           />
 
           <MoneySavedCard
-            amount={8500}
-            goal={10000}
-            goalReward="New Headphones"
+            amount={moneySaved.amount}
+            goal={moneySaved.goal}
+            goalReward={moneySaved.goalReward}
             scrollY={scrollY}
           />
 
-          <BadgeSection
-            title="Consistency"
-            badges={MOCK_BADGES.filter((b) => b.category === 'consistency')}
-            onBadgePress={handleBadgePress}
-            scrollY={scrollY}
-          />
+          {BADGE_SECTIONS.map(({ title, category }) => (
+            <BadgeSection
+              key={category}
+              title={title}
+              badges={badges.filter((b) => b.category === category)}
+              onBadgePress={handleBadgePress}
+              scrollY={scrollY}
+            />
+          ))}
 
-          <BadgeSection
-            title="Resilience"
-            badges={MOCK_BADGES.filter((b) => b.category === 'resilience')}
-            onBadgePress={handleBadgePress}
-            scrollY={scrollY}
-          />
-
-          <BadgeSection
-            title="Self-Control"
-            badges={MOCK_BADGES.filter((b) => b.category === 'self-control')}
-            onBadgePress={handleBadgePress}
-            scrollY={scrollY}
-          />
-
-          <BadgeSection
-            title="Growth"
-            badges={MOCK_BADGES.filter((b) => b.category === 'growth')}
-            onBadgePress={handleBadgePress}
-            scrollY={scrollY}
-          />
-
-          <RewardCarousel rewards={MOCK_REWARDS} scrollY={scrollY} />
+          <RewardCarousel rewards={rewards} scrollY={scrollY} />
 
           <WeeklyGrowthCard
-            improvementPercent={23}
-            message="You're building stronger habits each week"
+            improvementPercent={weeklyGrowth.improvementPercent}
+            message={weeklyGrowth.message}
             scrollY={scrollY}
           />
         </View>
@@ -243,5 +235,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: isSmallScreen() ? spacing.md : spacing.lg,
     paddingTop: spacing.xl,
     gap: isSmallScreen() ? spacing.lg : spacing.xl,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  loadingText: {
+    ...typography.bodyMedium,
+    color: colors.textSecondary,
+  },
+  errorText: {
+    ...typography.bodyMedium,
+    color: colors.error,
+    textAlign: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  retryHint: {
+    ...typography.bodySmall,
+    color: colors.accent,
+    marginTop: spacing.sm,
   },
 });

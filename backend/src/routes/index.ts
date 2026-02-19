@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { OnboardingController } from '../controllers/onboardingController';
 import { DashboardController } from '../controllers/dashboardController';
 import { ChatController } from "../controllers/chatController";
+import { RewardsController } from '../controllers/rewardsController';
 const router = Router();
 
 // Health check
@@ -26,5 +27,6 @@ router.post(
   ChatController.chatWithBot
 );
 
+router.get('/users/:userId/rewards', RewardsController.getRewards);
 
 export default router;

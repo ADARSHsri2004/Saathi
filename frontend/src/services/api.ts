@@ -330,3 +330,67 @@ export class DashboardApi {
   }
 }
 
+export type BadgeCategory = 'consistency' | 'resilience' | 'self-control' | 'growth';
+
+export interface RewardsBadgeResponse {
+  id: string;
+  category: BadgeCategory;
+  title: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+  progress: number;
+  unlockCondition: string;
+  motivationalLine: string;
+}
+
+export interface RewardsRewardItemResponse {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+  cost: number;
+}
+
+export interface RewardsResponse {
+  streak: number;
+  level: number;
+  xp: number;
+  xpToNextLevel: number;
+  identityTitle: string;
+  moneySaved: {
+    amount: number;
+    goal: number;
+    goalReward: string;
+  };
+  badges: RewardsBadgeResponse[];
+  rewards: RewardsRewardItemResponse[];
+  weeklyGrowth: {
+    improvementPercent: number;
+    message: string;
+  };
+}
+
+export class RewardsApi {
+  static async getRewards(userId: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}/rewards`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data: ApiResponse<RewardsResponse> = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch rewards');
+      }
+      return data.data!;
+    } catch (error) {
+      console.error('Error fetching rewards:', error);
+      throw error;
+    }
+  }
+}
+
