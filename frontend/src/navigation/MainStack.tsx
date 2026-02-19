@@ -5,6 +5,8 @@ import { GamesScreen } from '@/screens/GamesScreen';
 import { RewardsScreen } from '@/screens/RewardsScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
 import { AssistantScreen } from '@/screens/AssistantScreen';
+import { CompanionScreen } from '@/screens/CompanionScreen';
+import { AddCompanionScreen } from '@/screens/AddCompanionScreen';
 import { FocusRecallGameWrapper } from './FocusRecallGameWrapper';
 import { LocationShieldStack } from './LocationShieldStack';
 import { PlannerStack } from './PlannerStack';
@@ -16,6 +18,8 @@ export type MainStackParamList = {
   Rewards: undefined;
   Settings: undefined;
   Assistant: undefined;
+  Companion: undefined;
+  AddCompanion: undefined;
   LocationShieldStack: undefined;
   FocusRecallGame: undefined;
   PlannerStack: undefined;
@@ -36,6 +40,8 @@ export function MainStack() {
       <Stack.Screen name="Rewards" component={RewardsScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="Assistant" component={AssistantScreen} />
+      <Stack.Screen name="Companion" component={CompanionScreen} />
+      <Stack.Screen name="AddCompanion" component={AddCompanionScreen} />
       <Stack.Screen name="LocationShieldStack" component={LocationShieldStack} />
       <Stack.Screen name="FocusRecallGame" component={FocusRecallGameWrapper} />
       <Stack.Screen name="PlannerStack" component={PlannerStack} />

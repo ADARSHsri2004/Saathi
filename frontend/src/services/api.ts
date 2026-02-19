@@ -419,6 +419,60 @@ export interface SendChatResponse {
   createdAt: string;
 }
 
+export type CompanionPermission = 'view_streak' | 'relapse_alerts' | 'emergency_contact' | 'weekly_summary';
+
+export interface CompanionResponse {
+  id: string;
+  name: string;
+  phone: string;
+  countryCode: string;
+  permissions: CompanionPermission[];
+  createdAt: string;
+}
+
+export interface AddCompanionPayload {
+  name: string;
+  phone: string;
+  countryCode: string;
+  permissions: CompanionPermission[];
+}
+
+export class CompanionApi {
+  static async get(userId: string): Promise<CompanionResponse | null> {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/companion`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data: ApiResponse<CompanionResponse> = await response.json();
+    if (!data.success) throw new Error(data.error || 'Failed to get companion');
+    return data.data ?? null;
+  }
+
+  static async add(userId: string, payload: AddCompanionPayload): Promise<CompanionResponse> {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/companion`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data: ApiResponse<CompanionResponse> = await response.json();
+    if (!data.success) throw new Error(data.error || 'Failed to add companion');
+    return data.data!;
+  }
+
+  static async remove(userId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/companion`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data: ApiResponse<{ message: string }> = await response.json();
+    if (!data.success) throw new Error(data.error || 'Failed to remove companion');
+  }
+}
+
 export class AssistantApi {
   static async getContext(userId: string) {
     const response = await fetch(`${API_BASE_URL}/users/${userId}/assistant/context`, {
