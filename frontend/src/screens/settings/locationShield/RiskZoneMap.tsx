@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Dimensions, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Dimensions, Pressable, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
@@ -13,7 +13,9 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
+import * as Location from 'expo-location';
 import { Feather } from '@expo/vector-icons';
+import { CurrentLocationMap } from './CurrentLocationMap';
 import { ShieldOrb } from './ShieldOrb';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { colors, spacing, typography, borderRadius } from '../../../theme';
@@ -34,8 +36,18 @@ type RiskZoneMapProps = {
   onContinue: (zones: RiskZone[]) => void;
 };
 
+const DEFAULT_REGION = {
+  latitude: 25.241,
+  longitude: 86.985,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
+};
+
 export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
   const insets = useSafeAreaInsets();
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationLoading, setLocationLoading] = useState(true);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [zones, setZones] = useState<RiskZone[]>([]);
   const [searchText, setSearchText] = useState('');
   const [radius, setRadius] = useState(100);
@@ -45,6 +57,36 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
   const particleX = useSharedValue(width / 2);
   const particleY = useSharedValue(200);
   const orbIntensity = useSharedValue(0.6);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setLocationError('Location permission not granted');
+          setLocationLoading(false);
+          return;
+        }
+        const pos = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        if (!cancelled) {
+          setLocation({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          });
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setLocationError('Could not get location');
+        }
+      } finally {
+        if (!cancelled) setLocationLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     radiusShared.value = radius;
@@ -80,11 +122,11 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
     if (Platform.OS === 'ios') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-
+    const center = location ?? { latitude: DEFAULT_REGION.latitude, longitude: DEFAULT_REGION.longitude };
     const newZone: RiskZone = {
       id: Date.now().toString(),
-      latitude: 0, // In real app, get from map
-      longitude: 0,
+      latitude: center.latitude,
+      longitude: center.longitude,
       radius,
       name: searchText || 'Risk Zone',
     };
@@ -159,41 +201,20 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
           </View>
         </View>
 
-        {/* Map area with pulsing marker */}
         <View style={styles.mapContainer}>
-          <View style={styles.mapPlaceholder}>
-            {/* Center marker */}
-            <View style={styles.centerMarker}>
-              <View style={styles.markerDot} />
+          {locationLoading ? (
+            <View style={styles.mapPlaceholder}>
+              <ActivityIndicator size="large" color={colors.accent} />
+              <Text style={styles.mapLoadingText}>Getting your location...</Text>
             </View>
-
-            {/* Radius circle */}
-            <Animated.View style={[styles.radiusCircle, radiusStyle]}>
-              <View style={styles.radiusCircleInner} />
-            </Animated.View>
-
-            {/* Energy wave */}
-            <Animated.View style={[styles.energyWave, radiusStyle]}>
-              <LinearGradient
-                colors={['rgba(45, 156, 219, 0.3)', 'transparent']}
-                style={StyleSheet.absoluteFill}
-              />
-            </Animated.View>
-
-            {/* Saved zones */}
-            {zones.map((zone) => (
-              <View
-                key={zone.id}
-                style={[
-                  styles.savedZone,
-                  {
-                    width: (zone.radius / MAX_RADIUS) * 200,
-                    height: (zone.radius / MAX_RADIUS) * 200,
-                  },
-                ]}
-              />
-            ))}
-          </View>
+          ) : locationError && !location ? (
+            <View style={styles.mapPlaceholder}>
+              <Feather name="map-pin" size={48} color={colors.textMuted} />
+              <Text style={styles.mapLoadingText}>{locationError}</Text>
+            </View>
+          ) : (
+            <CurrentLocationMap location={location} zones={zones} />
+          )}
         </View>
 
         {/* Radius slider */}
@@ -316,6 +337,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(26, 58, 92, 0.5)',
+    gap: spacing.md,
+  },
+  mapLoadingText: {
+    ...typography.body,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   centerMarker: {
     position: 'absolute',
