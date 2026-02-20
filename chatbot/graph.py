@@ -59,27 +59,29 @@ async def clarify_intent(state: AgentState):
     if len(memory) > 150:
         return {"needs_clarification": False}
 
-    # Very short vague messages may need clarification
-    if len(message.split()) < 3:
-        return {"needs_clarification": True}
-
     clarification_prompt = f"""
 SYSTEM ROLE: Clinical Intake Coordinator.
 
 GOAL:
 Decide whether a clarifying question is ESSENTIAL before responding.
 
-ASK ONLY IF:
+ASK ONLY FOR CLARIFICATION IF:
 • the user requests a plan/help but the habit/substance is unclear
 • a relapse/slip is mentioned without trigger context
 • the message is vague and lacks meaning
 • safety or health risk requires clarification
 
-DO NOT ASK IF:
+DO NOT ASK FOR CLARIFICATION IF:
 • memory already contains addiction triggers or motivations
 • the user is venting emotions
 • the question is clear
 • the user asks general health advice
+• the message is a greeting
+• the user asks who you are
+• the user asks your name
+• the user gives short confirmations (yes, ok)
+• the meaning is obvious
+• the user is casually chatting
 
 MEMORY:
 {memory}
