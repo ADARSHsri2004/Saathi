@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Platform, ActivityIndicator, ScrollView, TouchableOpacity, LayoutChangeEvent, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, Platform, ActivityIndicator, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, {
@@ -10,16 +10,15 @@ import Animated, {
   withSequence,
   interpolate,
   Easing,
-  runOnJS,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { Feather } from '@expo/vector-icons';
 import { CurrentLocationMap } from './CurrentLocationMap';
 import { ShieldOrb } from './ShieldOrb';
 import { PrimaryButton } from '../../../components/PrimaryButton';
+import { AppSlider } from '../../../components/AppSlider';
 import { colors, spacing, typography, borderRadius } from '../../../theme';
 import { LocationShieldApi } from '../../../services/api';
 
@@ -62,14 +61,11 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
   const [draftCenter, setDraftCenter] = useState<{ latitude: number; longitude: number } | null>(null);
   const [radius, setRadius] = useState(100);
   const radiusShared = useSharedValue(100);
-  const sliderProgress = useSharedValue((100 - MIN_RADIUS) / (MAX_RADIUS - MIN_RADIUS));
-  const trackWidth = useSharedValue(Math.max(0, width - spacing.lg * 2));
   const rippleScale = useSharedValue(1);
   const particleOpacity = useSharedValue(0);
   const particleX = useSharedValue(width / 2);
   const particleY = useSharedValue(200);
   const orbIntensity = useSharedValue(0.6);
-  const lastReportedRadius = useRef(100);
 
   useEffect(() => {
     let cancelled = false;
@@ -167,9 +163,6 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
 
   useEffect(() => {
     radiusShared.value = radius;
-    const p = (radius - MIN_RADIUS) / (MAX_RADIUS - MIN_RADIUS);
-    sliderProgress.value = withTiming(p, { duration: 150 });
-    lastReportedRadius.current = radius;
     rippleScale.value = withRepeat(
       withSequence(
         withTiming(1.2, { duration: 2000, easing: Easing.out(Easing.ease) }),
@@ -179,64 +172,6 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
       false
     );
   }, [radius]);
-
-  const handleSliderChange = useCallback((value: number) => {
-    const newRadius = Math.round(Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, value)));
-    if (newRadius === lastReportedRadius.current) return;
-    lastReportedRadius.current = newRadius;
-    setRadius(newRadius);
-    if (Platform.OS === 'ios') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, []);
-
-  const onSliderLayout = useCallback((e: LayoutChangeEvent) => {
-    const w = e.nativeEvent.layout.width;
-    if (w > 0) trackWidth.value = w;
-  }, []);
-
-  const panGesture = Gesture.Pan()
-    .onUpdate((e) => {
-      'worklet';
-      const w = trackWidth.value;
-      if (w <= 0) return;
-      const x = Math.max(0, Math.min(w, e.x));
-      const p = x / w;
-      sliderProgress.value = p;
-      const r = Math.round(MIN_RADIUS + p * (MAX_RADIUS - MIN_RADIUS));
-      if (r !== lastReportedRadius.current) {
-        runOnJS(handleSliderChange)(r);
-      }
-    })
-    .onEnd(() => {
-      'worklet';
-      const p = sliderProgress.value;
-      const r = Math.round(MIN_RADIUS + p * (MAX_RADIUS - MIN_RADIUS));
-      sliderProgress.value = withTiming((r - MIN_RADIUS) / (MAX_RADIUS - MIN_RADIUS), { duration: 100 });
-      runOnJS(handleSliderChange)(r);
-    });
-
-  const tapGesture = Gesture.Tap()
-    .onEnd((e) => {
-      'worklet';
-      const w = trackWidth.value;
-      if (w <= 0) return;
-      const x = Math.max(0, Math.min(w, e.x));
-      const p = x / w;
-      sliderProgress.value = withTiming(p, { duration: 150 });
-      const r = Math.round(MIN_RADIUS + p * (MAX_RADIUS - MIN_RADIUS));
-      runOnJS(handleSliderChange)(r);
-    });
-
-  const sliderComposed = Gesture.Race(panGesture, tapGesture);
-
-  const sliderFillStyle = useAnimatedStyle(() => ({
-    width: `${sliderProgress.value * 100}%`,
-  }));
-
-  const sliderThumbStyle = useAnimatedStyle(() => ({
-    left: `${sliderProgress.value * 100}%`,
-  }));
 
   const handleSaveZone = async () => {
     if (Platform.OS === 'ios') {
@@ -395,14 +330,18 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
           </View>
 
           <View style={styles.sliderContainer}>
-            <Text style={styles.sliderLabel}>Alert Radius</Text>
-            <GestureDetector gesture={sliderComposed}>
-              <Animated.View style={styles.sliderTrack} onLayout={onSliderLayout}>
-                <Animated.View style={[styles.sliderFill, sliderFillStyle]} />
-                <Animated.View style={[styles.sliderThumb, sliderThumbStyle]} />
-              </Animated.View>
-            </GestureDetector>
-            <Text style={styles.radiusValue}>{radius}m</Text>
+            <AppSlider
+              value={radius}
+              minimumValue={MIN_RADIUS}
+              maximumValue={MAX_RADIUS}
+              onValueChange={setRadius}
+              step={10}
+              label="Alert Radius"
+              valueFormatter={(v) => `${v}m`}
+              minimumTrackTintColor={colors.accent}
+              maximumTrackTintColor="rgba(255,255,255,0.25)"
+              thumbTintColor={colors.accent}
+            />
           </View>
 
           <View style={styles.orbContainer}>
@@ -580,40 +519,6 @@ const styles = StyleSheet.create({
   },
   sliderContainer: {
     marginBottom: spacing.lg,
-  },
-  sliderLabel: {
-    ...typography.label,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: spacing.sm,
-  },
-  sliderTrack: {
-    height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 3,
-    marginBottom: spacing.xs,
-  },
-  sliderFill: {
-    height: '100%',
-    backgroundColor: colors.accent,
-    borderRadius: 3,
-  },
-  sliderThumb: {
-    position: 'absolute',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.accent,
-    top: -9,
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  radiusValue: {
-    ...typography.bodyMedium,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
   },
   orbContainer: {
     alignItems: 'center',
