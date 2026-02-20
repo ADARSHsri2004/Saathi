@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, ScrollView, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
@@ -16,14 +16,13 @@ import { ShieldOrb } from './ShieldOrb';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { colors, spacing, typography, borderRadius } from '../../../theme';
 
-const { width, height } = Dimensions.get('window');
-
 type LocationShieldIntroProps = {
   onNext: () => void;
 };
 
 export function LocationShieldIntro({ onNext }: LocationShieldIntroProps) {
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const titleOpacity = useSharedValue(0);
   const subtitleOpacity = useSharedValue(0);
   const buttonOpacity = useSharedValue(0);
@@ -98,7 +97,6 @@ export function LocationShieldIntro({ onNext }: LocationShieldIntroProps) {
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Floating particles */}
       {particles.map((particle) => {
         const particleStyle = useAnimatedStyle(() => ({
           opacity: particle.opacity.value,
@@ -124,30 +122,36 @@ export function LocationShieldIntro({ onNext }: LocationShieldIntroProps) {
         );
       })}
 
-      <View style={styles.content}>
-        <View style={styles.orbContainer}>
-          <ShieldOrb size={140} intensity={0.8} />
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + spacing.lg }]}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={[styles.content, { maxWidth: width }]}>
+          <View style={styles.orbContainer}>
+            <ShieldOrb size={140} intensity={0.8} />
+          </View>
+
+          <Animated.View style={[styles.textContainer, titleStyle]}>
+            <Text style={styles.title}>Activate Your Location Shield</Text>
+          </Animated.View>
+
+          <Animated.View style={[styles.textContainer, subtitleStyle]}>
+            <Text style={styles.subtitle}>
+              Saathi can gently guide you away from risky places.
+            </Text>
+          </Animated.View>
+
+          <Animated.View style={[styles.buttonContainer, buttonStyle, { maxWidth: width - spacing.xl * 2 }]}>
+            <PrimaryButton
+              label="Begin Setup"
+              onPress={handleBeginPress}
+              pulse={true}
+              showArrow={true}
+            />
+          </Animated.View>
         </View>
-
-        <Animated.View style={[styles.textContainer, titleStyle]}>
-          <Text style={styles.title}>Activate Your Location Shield</Text>
-        </Animated.View>
-
-        <Animated.View style={[styles.textContainer, subtitleStyle]}>
-          <Text style={styles.subtitle}>
-            Saathi can gently guide you away from risky places.
-          </Text>
-        </Animated.View>
-
-        <Animated.View style={[styles.buttonContainer, buttonStyle]}>
-          <PrimaryButton
-            label="Begin Setup"
-            onPress={handleBeginPress}
-            pulse={true}
-            showArrow={true}
-          />
-        </Animated.View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -156,8 +160,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   content: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
@@ -177,6 +185,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     fontSize: 32,
     fontWeight: '700',
+    flexShrink: 1,
   },
   subtitle: {
     ...typography.body,
@@ -184,11 +193,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
     lineHeight: 26,
+    flexShrink: 1,
   },
   buttonContainer: {
     marginTop: spacing.xl,
     width: '100%',
-    maxWidth: 300,
+    alignSelf: 'stretch',
   },
   particle: {
     position: 'absolute',

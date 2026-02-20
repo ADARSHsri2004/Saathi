@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, ScrollView, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
@@ -23,6 +23,7 @@ type PermissionExplainerProps = {
 
 export function PermissionExplainer({ onAllow, onDenied }: PermissionExplainerProps) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const [requesting, setRequesting] = useState(false);
   const orbOpacity = useSharedValue(0);
   const orbScale = useSharedValue(0.8);
@@ -108,42 +109,48 @@ export function PermissionExplainer({ onAllow, onDenied }: PermissionExplainerPr
         style={StyleSheet.absoluteFill}
       />
 
-      <View style={styles.content}>
-        <View style={styles.orbWrapper}>
-          <Animated.View style={[styles.auraContainer, auraStyle]}>
-            <View style={styles.auraCircle} />
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + spacing.lg }]}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={[styles.content, { maxWidth: width }]}>
+          <View style={styles.orbWrapper}>
+            <Animated.View style={[styles.auraContainer, auraStyle]}>
+              <View style={styles.auraCircle} />
+            </Animated.View>
+            <Animated.View style={orbStyle}>
+              <ShieldOrb size={140} intensity={0.9} />
+            </Animated.View>
+          </View>
+
+          <Animated.View style={[styles.textContainer, titleStyle]}>
+            <Text style={styles.title}>Let Saathi Watch Over You</Text>
           </Animated.View>
-          <Animated.View style={orbStyle}>
-            <ShieldOrb size={140} intensity={0.9} />
+
+          <Animated.View style={[styles.textContainer, bodyStyle]}>
+            <Text style={styles.body}>
+              We use your location only to protect you during vulnerable moments.
+            </Text>
+          </Animated.View>
+
+          <Animated.View style={[styles.bulletsContainer, bulletsStyle]}>
+            <BulletPoint icon="shield" text="No constant tracking" />
+            <BulletPoint icon="lock" text="No selling data" />
+            <BulletPoint icon="heart" text="Only risk prevention" />
+          </Animated.View>
+
+          <Animated.View style={[styles.buttonContainer, buttonStyle, { maxWidth: width - spacing.xl * 2 }]}>
+            <PrimaryButton
+              label="Allow Protection"
+              onPress={handleAllowPress}
+              showArrow={!requesting}
+              disabled={requesting}
+              loading={requesting}
+            />
           </Animated.View>
         </View>
-
-        <Animated.View style={[styles.textContainer, titleStyle]}>
-          <Text style={styles.title}>Let Saathi Watch Over You</Text>
-        </Animated.View>
-
-        <Animated.View style={[styles.textContainer, bodyStyle]}>
-          <Text style={styles.body}>
-            We use your location only to protect you during vulnerable moments.
-          </Text>
-        </Animated.View>
-
-        <Animated.View style={[styles.bulletsContainer, bulletsStyle]}>
-          <BulletPoint icon="shield" text="No constant tracking" />
-          <BulletPoint icon="lock" text="No selling data" />
-          <BulletPoint icon="heart" text="Only risk prevention" />
-        </Animated.View>
-
-        <Animated.View style={[styles.buttonContainer, buttonStyle]}>
-          <PrimaryButton
-            label="Allow Protection"
-            onPress={handleAllowPress}
-            showArrow={!requesting}
-            disabled={requesting}
-            loading={requesting}
-          />
-        </Animated.View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -168,8 +175,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   content: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
@@ -207,6 +218,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     fontSize: 28,
     fontWeight: '700',
+    flexShrink: 1,
   },
   body: {
     ...typography.body,
@@ -214,6 +226,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     lineHeight: 24,
+    flexShrink: 1,
   },
   bulletsContainer: {
     width: '100%',
@@ -244,6 +257,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     marginTop: spacing.xl,
     width: '100%',
-    maxWidth: 300,
+    alignSelf: 'stretch',
   },
 });
