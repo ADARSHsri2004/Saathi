@@ -1,4 +1,7 @@
-import { TextStyle } from 'react-native';
+import { TextStyle, Platform } from 'react-native';
+
+const fontFamily = Platform.select({ ios: 'AvenirNext-Regular', android: 'sans-serif' });
+const fontFamilySemi = Platform.select({ ios: 'AvenirNext-DemiBold', android: 'sans-serif-medium' });
 
 export const fontSizes = {
   xs: 12,
@@ -17,51 +20,67 @@ export const lineHeights = {
 
 export const typography: Record<string, TextStyle> = {
   hero: {
+    fontFamily: fontFamilySemi,
     fontSize: fontSizes.xxl,
-    fontWeight: '600',        // Stronger for light theme
+    fontWeight: '600',
     letterSpacing: 0.3,
     lineHeight: fontSizes.xxl * lineHeights.tight,
   },
   title: {
+    fontFamily: fontFamilySemi,
     fontSize: fontSizes.xl,
-    fontWeight: '600',        // Increased for better contrast
+    fontWeight: '600',
     letterSpacing: 0.2,
     lineHeight: fontSizes.xl * lineHeights.tight,
   },
   titleSmall: {
+    fontFamily: fontFamilySemi,
+    fontSize: fontSizes.lg,
+    fontWeight: '600',
+    letterSpacing: 0.15,
+    lineHeight: fontSizes.lg * lineHeights.normal,
+  },
+  titleMedium: {
+    fontFamily: fontFamilySemi,
     fontSize: fontSizes.lg,
     fontWeight: '600',
     letterSpacing: 0.15,
     lineHeight: fontSizes.lg * lineHeights.normal,
   },
   body: {
+    fontFamily,
     fontSize: fontSizes.md,
     fontWeight: '400',
     lineHeight: fontSizes.md * lineHeights.relaxed,
   },
   bodyMedium: {
+    fontFamily,
     fontSize: fontSizes.md,
-    fontWeight: '500',        // Medium weight option
+    fontWeight: '500',
     lineHeight: fontSizes.md * lineHeights.relaxed,
   },
   bodySmall: {
+    fontFamily,
     fontSize: fontSizes.sm,
     fontWeight: '400',
     lineHeight: fontSizes.sm * lineHeights.relaxed,
   },
   caption: {
+    fontFamily,
     fontSize: fontSizes.xs,
     fontWeight: '400',
     lineHeight: fontSizes.xs * lineHeights.normal,
   },
   button: {
+    fontFamily: fontFamilySemi,
     fontSize: fontSizes.md,
     fontWeight: '600',
     letterSpacing: 0.4,
   },
   label: {
+    fontFamily: fontFamilySemi,
     fontSize: fontSizes.sm,
-    fontWeight: '600',        // Stronger for labels
+    fontWeight: '600',
     letterSpacing: 0.3,
   },
 };
