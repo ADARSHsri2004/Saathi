@@ -6,7 +6,6 @@ import { PermissionExplainer } from '../screens/settings/locationShield/Permissi
 import { RiskZoneMap } from '../screens/settings/locationShield/RiskZoneMap';
 import { AlertStyleSelector, type AlertStyle } from '../screens/settings/locationShield/AlertStyleSelector';
 import { NotificationPreview } from '../screens/settings/locationShield/NotificationPreview';
-import { ActivationSuccess } from '../screens/settings/locationShield/ActivationSuccess';
 
 export type LocationShieldStackParamList = {
   Intro: undefined;
@@ -14,7 +13,6 @@ export type LocationShieldStackParamList = {
   RiskZones: undefined;
   AlertStyle: undefined;
   NotificationPreview: { alertStyle: AlertStyle };
-  ActivationSuccess: undefined;
 };
 
 const Stack = createNativeStackNavigator<LocationShieldStackParamList>();
@@ -71,20 +69,7 @@ export function LocationShieldStack() {
         {({ navigation, route }) => (
           <NotificationPreview
             alertStyle={route.params.alertStyle}
-            onContinue={() => navigation.navigate('ActivationSuccess')}
-          />
-        )}
-      </Stack.Screen>
-      <Stack.Screen
-        name="ActivationSuccess"
-        options={{ gestureEnabled: false }}
-      >
-        {({ navigation }) => (
-          <ActivationSuccess
-            onFinish={() => {
-              // Navigate back to Settings by popping LocationShieldStack
-              navigation.getParent()?.goBack();
-            }}
+            onContinue={() => navigation.getParent()?.goBack()}
           />
         )}
       </Stack.Screen>
