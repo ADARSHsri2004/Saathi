@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import {
   CreateUserRequest,
   CreateUserResponse,
@@ -7,8 +6,7 @@ import {
   OnboardingResponse,
   ApiResponse,
 } from '../types/index';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 export class OnboardingController {
   /**

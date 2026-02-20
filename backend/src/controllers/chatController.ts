@@ -1,10 +1,8 @@
 import { Request, Response } from "express";
 import axios from "axios";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '../lib/prisma';
 
 const CHATBOT_API_URL = process.env.CHATBOT_API_URL || 'https://saathi-chatbot.onrender.com';
-
-const prisma = new PrismaClient();
 
 export class ChatController {
   static async getChatHistory(

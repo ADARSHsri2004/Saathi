@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { ApiResponse } from '../types/index';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 const XP_PER_LEVEL = 500;
 const DEFAULT_SAVINGS_GOAL = 10000;

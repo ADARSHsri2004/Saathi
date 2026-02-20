@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { ApiResponse } from '../types/index';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 const LIFE_LOST_PER_CIGARETTE_MINUTES = 11;
 

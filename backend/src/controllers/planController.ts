@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { ApiResponse } from '../types/index';
 import axios from 'axios';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // URL of the Personalised_plan_model API
 const PLAN_API_URL = process.env.PLAN_API_URL || 'http://localhost:8000';

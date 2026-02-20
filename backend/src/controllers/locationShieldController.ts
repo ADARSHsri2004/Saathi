@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient, RiskZone } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { RiskZone } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 export interface RiskZoneBody {
   id?: string;
