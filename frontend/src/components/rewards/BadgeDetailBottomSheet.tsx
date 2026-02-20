@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors, spacing, typography, borderRadius } from '../../theme';
+import { CircularProgressRing } from '../CircularProgressRing';
 import type { Badge } from './types';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -147,18 +148,18 @@ export function BadgeDetailBottomSheet({
 
               {!badge.unlocked && (
                 <View style={styles.progressContainer}>
-                  <View style={styles.progressHeader}>
-                    <Text style={styles.progressLabel}>Progress</Text>
-                    <Text style={styles.progressPercent}>
-                      {Math.round(badge.progress * 100)}%
-                    </Text>
-                  </View>
-                  <View style={styles.progressBar}>
-                    <View
-                      style={[
-                        styles.progressBarFill,
-                        { width: `${badge.progress * 100}%` },
-                      ]}
+                  <Text style={styles.progressLabel}>Progress</Text>
+                  <View style={styles.progressRingWrap}>
+                    <CircularProgressRing
+                      value={badge.progress * 100}
+                      maxValue={100}
+                      radius={48}
+                      duration={800}
+                      progressValueColor={colors.accent}
+                      activeStrokeColor={colors.accent}
+                      inActiveStrokeColor={colors.progressBackground}
+                      progressFormatter={(v) => `${Math.round(v)}%`}
+                      showProgressValue={true}
                     />
                   </View>
                 </View>
@@ -287,32 +288,14 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: borderRadius.lg,
   },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
   progressLabel: {
     ...typography.bodyMedium,
     color: colors.textPrimary,
     fontWeight: '600',
+    marginBottom: spacing.sm,
   },
-  progressPercent: {
-    ...typography.bodyMedium,
-    color: colors.accent,
-    fontWeight: '600',
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: colors.progressBackground,
-    borderRadius: borderRadius.full,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: colors.accent,
-    borderRadius: borderRadius.full,
+  progressRingWrap: {
+    alignItems: 'center',
   },
   motivationalContainer: {
     flexDirection: 'row',

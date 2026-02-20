@@ -191,7 +191,21 @@ export function CompanionDashboardScreen() {
         {dashboardMetrics?.todayProgress != null && (
           <Animated.View entering={FadeIn.delay(280).duration(400)} style={styles.section}>
             <Text style={styles.sectionTitle}>Today&apos;s progress</Text>
-            <TodayProgressBar percentage={todayPct} />
+            <View style={styles.todayProgressRing}>
+              <CircularProgressRing
+                value={todayPct}
+                maxValue={100}
+                radius={52}
+                duration={1200}
+                title="Today"
+                titleColor={colors.textPrimary}
+                subtitleColor={colors.textSecondary}
+                progressValueColor={colors.accent}
+                activeStrokeColor={colors.accent}
+                inActiveStrokeColor={colors.progressBackground}
+                progressFormatter={(v) => `${Math.round(v)}%`}
+              />
+            </View>
           </Animated.View>
         )}
 
@@ -307,23 +321,6 @@ function StreakRing({
           <Text style={styles.streakMetaSub}>Last: {new Date(lastRelapseDate).toLocaleDateString()}</Text>
         )}
       </View>
-    </View>
-  );
-}
-
-function TodayProgressBar({ percentage }: { percentage: number }) {
-  const width = useSharedValue(0);
-  useEffect(() => {
-    width.value = withDelay(300, withTiming(percentage / 100, { duration: 1000 }));
-  }, [percentage]);
-  const fillStyle = useAnimatedStyle(() => ({ width: `${width.value * 100}%` }));
-
-  return (
-    <View style={styles.progressCard}>
-      <View style={styles.progressTrack}>
-        <Animated.View style={[styles.progressFill, fillStyle]} />
-      </View>
-      <Text style={styles.progressPct}>{percentage}% today</Text>
     </View>
   );
 }
@@ -590,27 +587,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     paddingHorizontal: 2,
   },
-  progressCard: {
-    backgroundColor: CARD_GLASS,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+  todayProgressRing: {
+    alignItems: 'center',
+    marginVertical: spacing.sm,
   },
-  progressTrack: {
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    overflow: 'hidden',
-    marginBottom: spacing.xs,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 6,
-    backgroundColor: colors.accent,
-  },
-  progressPct: { ...typography.caption, color: colors.textPrimary, fontWeight: '600' },
-
   metricsCard: {
     backgroundColor: CARD_GLASS,
     borderRadius: borderRadius.lg,

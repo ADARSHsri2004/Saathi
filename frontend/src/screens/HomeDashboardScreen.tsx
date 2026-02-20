@@ -27,6 +27,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AppHeader } from '../components/AppHeader';
 import { BottomNav } from '../components/BottomNav';
 import { PanicButton } from '../components/PanicButton';
+import { CircularProgressRing } from '../components/CircularProgressRing';
 import { colors, spacing, typography, borderRadius } from '../theme';
 import { useDashboard } from '../context/DashboardContext';
 import { getRandomTips } from '../constants/smokingTips';
@@ -41,7 +42,6 @@ export function HomeDashboardScreen() {
   const navigation = useNavigation<NavProp>();
   const { metrics, projections, isLoading, recordRelapse, refreshDashboard } = useDashboard();
   const [headerElevated, setHeaderElevated] = useState(false);
-  const [progressWidth, setProgressWidth] = useState(0);
   const [tipsModalVisible, setTipsModalVisible] = useState(false);
   const [currentTips, setCurrentTips] = useState(() => getRandomTips(3));
   const [relapseModalVisible, setRelapseModalVisible] = useState(false);
@@ -53,7 +53,6 @@ export function HomeDashboardScreen() {
   const relapseOpacity = useSharedValue(0);
   const relapseScale = useSharedValue(0.9);
 
-  const progressFill = useSharedValue(0);
   const dailyOpacity = useSharedValue(0);
   const dailyTranslate = useSharedValue(12);
   const metricsOpacity = useSharedValue(0);
@@ -81,13 +80,6 @@ export function HomeDashboardScreen() {
     chartOpacity.value = withDelay(840, withTiming(1, { duration: 500 }));
     chartTranslate.value = withDelay(840, withTiming(0, { duration: 500 }));
   }, []);
-
-  useEffect(() => {
-    if (progressWidth > 0 && metrics) {
-      const progressValue = metrics.todayProgress.percentage / 100;
-      progressFill.value = withTiming(progressWidth * progressValue, { duration: 1200 });
-    }
-  }, [progressWidth, metrics]);
 
   const handleResetClick = () => {
     relapseOpacity.value = withTiming(1, { duration: 300 });
@@ -232,9 +224,6 @@ export function HomeDashboardScreen() {
     transform: [{ translateY: tipsTranslate.value }],
   }));
 
-  const progressAnimatedStyle = useAnimatedStyle(() => ({
-    width: progressFill.value,
-  }));
 
   const relapseModalStyle = useAnimatedStyle(() => ({
     opacity: relapseOpacity.value,
@@ -312,11 +301,20 @@ export function HomeDashboardScreen() {
           <Text style={styles.motivationalText}>
             You are steady and resilient. Keep breathing through the urges.
           </Text>
-          <View
-            style={styles.progressTrack}
-            onLayout={(event) => setProgressWidth(event.nativeEvent.layout.width)}
-          >
-            <Animated.View style={[styles.progressFill, progressAnimatedStyle]} />
+          <View style={styles.todayProgressRing}>
+            <CircularProgressRing
+              value={metrics.todayProgress.percentage}
+              maxValue={100}
+              radius={52}
+              duration={1200}
+              title="Today"
+              titleColor={colors.textSecondary}
+              subtitleColor={colors.textMuted}
+              progressValueColor={colors.accent}
+              activeStrokeColor={colors.progressFill}
+              inActiveStrokeColor={colors.progressBackground}
+              progressFormatter={(v) => `${Math.round(v)}%`}
+            />
           </View>
           <View style={styles.progressRow}>
             <Text style={styles.progressLabel}>{metrics.todayProgress.percentage}% of today complete</Text>
@@ -694,16 +692,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     marginBottom: spacing.md,
   },
-  progressTrack: {
-    height: 10,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.progressBackground,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: 10,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.progressFill,
+  todayProgressRing: {
+    alignItems: 'center',
+    marginVertical: spacing.sm,
   },
   progressRow: {
     marginTop: spacing.sm,

@@ -4,7 +4,6 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  withSpring,
   withRepeat,
   withSequence,
   interpolate,
@@ -12,6 +11,7 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 import { SCREEN_WIDTH, scale as scaleSize, scaleFont, isSmallScreen } from '../../utils/responsive';
+import { CircularProgressRing } from '../CircularProgressRing';
 
 interface HeroSectionProps {
   streak: number;
@@ -29,7 +29,6 @@ export function HeroSection({
   identityTitle,
 }: HeroSectionProps) {
   const streakValue = useSharedValue(0);
-  const xpProgress = useSharedValue(0);
   const titleGlow = useSharedValue(0);
   const particleY1 = useSharedValue(0);
   const particleY2 = useSharedValue(0);
@@ -37,7 +36,6 @@ export function HeroSection({
 
   useEffect(() => {
     streakValue.value = withTiming(streak, { duration: 1500 });
-    xpProgress.value = withTiming(xp / xpToNextLevel, { duration: 2000 });
     titleGlow.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 2000 }),
@@ -65,10 +63,6 @@ export function HeroSection({
 
   const streakStyle = useAnimatedStyle(() => ({
     opacity: interpolate(streakValue.value, [0, streak], [0, 1]),
-  }));
-
-  const xpRingOpacity = useAnimatedStyle(() => ({
-    opacity: xpProgress.value,
   }));
 
   const titleGlowStyle = useAnimatedStyle(() => ({
@@ -124,35 +118,19 @@ export function HeroSection({
           </View>
 
           <View style={styles.xpContainer}>
-            <View style={[styles.xpRingWrapper, {
-              width: smallScreen ? scaleSize(100) : scaleSize(120),
-              height: smallScreen ? scaleSize(100) : scaleSize(120),
-            }]}>
-              <View style={[styles.xpRingBackground, {
-                width: smallScreen ? scaleSize(100) : scaleSize(120),
-                height: smallScreen ? scaleSize(100) : scaleSize(120),
-                borderRadius: smallScreen ? scaleSize(50) : scaleSize(60),
-                borderWidth: smallScreen ? 5 : 6,
-              }]} />
-              <Animated.View
-                style={[
-                  styles.xpRingProgress,
-                  xpRingOpacity,
-                  {
-                    width: smallScreen ? scaleSize(100) : scaleSize(120),
-                    height: smallScreen ? scaleSize(100) : scaleSize(120),
-                    borderRadius: smallScreen ? scaleSize(50) : scaleSize(60),
-                    borderWidth: smallScreen ? 5 : 6,
-                  }
-                ]}
-              >
-                <LinearGradient
-                  colors={['#FFD700', '#FFA500', '#FF6B35']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={[styles.xpRingGradient, { borderRadius: smallScreen ? scaleSize(50) : scaleSize(60) }]}
-                />
-              </Animated.View>
+            <CircularProgressRing
+              value={xpToNextLevel > 0 ? xp : 0}
+              maxValue={xpToNextLevel > 0 ? xpToNextLevel : 1}
+              radius={smallScreen ? 42 : 50}
+              duration={1200}
+              titleColor="rgba(255,255,255,0.9)"
+              subtitleColor="rgba(255,255,255,0.8)"
+              progressValueColor="#FFFFFF"
+              activeStrokeColor="#FFD700"
+              inActiveStrokeColor="rgba(255,255,255,0.2)"
+              inActiveStrokeOpacity={0.5}
+              showProgressValue={false}
+            >
               <View style={[styles.xpRingInner, {
                 width: smallScreen ? scaleSize(84) : scaleSize(100),
                 height: smallScreen ? scaleSize(84) : scaleSize(100),
@@ -161,7 +139,7 @@ export function HeroSection({
                 <Text style={[styles.levelText, { fontSize: smallScreen ? scaleFont(11) : scaleFont(12) }]}>Level</Text>
                 <Text style={[styles.levelNumber, { fontSize: smallScreen ? scaleFont(20) : scaleFont(24) }]}>{level}</Text>
               </View>
-            </View>
+            </CircularProgressRing>
           </View>
         </View>
       </LinearGradient>
@@ -234,23 +212,6 @@ const styles = StyleSheet.create({
   },
   xpContainer: {
     alignItems: 'center',
-  },
-  xpRingWrapper: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  xpRingBackground: {
-    position: 'absolute',
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  xpRingProgress: {
-    position: 'absolute',
-    borderColor: 'transparent',
-    borderTopColor: '#FFD700',
-    borderRightColor: '#FFA500',
-  },
-  xpRingGradient: {
-    ...StyleSheet.absoluteFillObject,
   },
   xpRingInner: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
