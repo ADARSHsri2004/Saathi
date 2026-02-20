@@ -15,7 +15,7 @@ type NavProp = NativeStackNavigationProp<PlannerStackParamList, 'LifestyleTrigge
 export function LifestyleTriggersScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavProp>();
-  const { answers, setYearsAddicted, setTriggers, addTrigger } = usePlannerAssessment();
+  const { answers, setYearsAddicted, setTriggers, addTrigger, setDailyConsumption } = usePlannerAssessment();
 
   const toggleTrigger = (tag: string) => {
     if (answers.triggers.includes(tag)) {
@@ -25,12 +25,23 @@ export function LifestyleTriggersScreen() {
     }
   };
 
+  // Validate that we have all required data
+  const canProceed = answers.dailyConsumption && answers.dailyConsumption > 0 && answers.yearsAddicted > 0;
+
   return (
     <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <Text style={styles.sectionTitle}>How many cigarettes per day?</Text>
+        <SliderInput
+          value={answers.dailyConsumption || 5}
+          min={1}
+          max={40}
+          valueSuffix="cigarettes"
+          onValueChange={setDailyConsumption}
+        />
         <Text style={styles.sectionTitle}>How long have you been addicted?</Text>
         <SliderInput
           value={answers.yearsAddicted}
@@ -50,8 +61,14 @@ export function LifestyleTriggersScreen() {
           <PrimaryButton
             label="Generate my plan"
             onPress={() => navigation.navigate('AIProcessing')}
+            disabled={!canProceed}
             showArrow={true}
           />
+          {!canProceed && (
+            <Text style={styles.warningText}>
+              Please fill in daily consumption and time addicted
+            </Text>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -80,5 +97,9 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: spacing.xxl,
-  },
-});
+  },  warningText: {
+    ...typography.caption,
+    color: colors.error,
+    marginTop: spacing.sm,
+    textAlign: 'center',
+  },});

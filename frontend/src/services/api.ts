@@ -509,3 +509,152 @@ export class AssistantApi {
   }
 }
 
+export interface AIRecommendations {
+  nicotineReplacement?: boolean;
+  behavioralTips: string[];
+  triggerStrategies: string[];
+  exerciseTips: string[];
+}
+
+export interface RecoveryPlanResponse {
+  id: string;
+  planSummary: string;
+  addictionSeverity: string;
+  relapseRisk: string;
+  futureDailyLimits: number[];
+  recoveryDurationDays: number;
+  currentDayIndex: number;
+  todayLimit: number;
+  aiRecommendations: AIRecommendations;
+  startedAt?: string;
+  createdAt: string;
+}
+
+export interface GeneratePlanPayload {
+  dailyConsumption: number;
+  yearsOfAddiction: number;
+  ftndAnswers?: Record<number, number>;
+  triggers: string[];
+}
+
+export interface UpdatePlanPayload {
+  recentUsage: number[];
+  recentAllowedLimits: number[];
+}
+
+export class PlanApi {
+  /**
+   * Generate initial recovery plan
+   */
+  static async generatePlan(userId: string, payload: GeneratePlanPayload): Promise<RecoveryPlanResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}/plan/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: ApiResponse<RecoveryPlanResponse> = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to generate plan');
+      }
+
+      return data.data!;
+    } catch (error) {
+      console.error('Error generating plan:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user's current recovery plan
+   */
+  static async getPlan(userId: string): Promise<RecoveryPlanResponse | null> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}/plan`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.status === 404) {
+        return null;
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: ApiResponse<RecoveryPlanResponse> = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch plan');
+      }
+
+      return data.data!;
+    } catch (error) {
+      console.error('Error fetching plan:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update recovery plan based on progress
+   */
+  static async updatePlan(userId: string, payload: UpdatePlanPayload): Promise<RecoveryPlanResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}/plan/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: ApiResponse<RecoveryPlanResponse> = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update plan');
+      }
+
+      return data.data!;
+    } catch (error) {
+      console.error('Error updating plan:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Advance to next day in the plan
+   */
+  static async advanceDay(userId: string): Promise<{ currentDayIndex: number; todayLimit: number }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}/plan/advance-day`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: ApiResponse<{ currentDayIndex: number; todayLimit: number }> = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to advance day');
+      }
+
+      return data.data!;
+    } catch (error) {
+      console.error('Error advancing day:', error);
+      throw error;
+    }
+  }
+}
+
