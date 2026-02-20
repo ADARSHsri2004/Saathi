@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   ActivityIndicator,
   Dimensions,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -31,7 +32,9 @@ import { colors, spacing, typography } from '../theme';
 import { AssistantApi, type AssistantContextResponse, type ChatHistoryItem } from '../services/api';
 
 const USER_ID_KEY = 'user_id';
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const AVATAR_SIZE = Math.min(100, Math.round(SCREEN_WIDTH * 0.26));
+const BOT_IMAGE = require('../../assets/robot.png');
 
 type Phase = 'loading' | 'entry' | 'presence' | 'greeting' | 'chat' | 'exit';
 
@@ -51,9 +54,9 @@ const QUICK_CHIPS = [
 ];
 
 const MOOD_GRADIENTS = {
-  calm: ['#4A148C', '#7B1FA2', '#9C27B0'] as const,
-  high_risk: ['#4A148C', '#B71C1C', '#E53935'] as const,
-  achievement: ['#1B5E20', '#7B1FA2', '#FFD700'] as const,
+  calm: [colors.background, colors.backgroundSecondary, colors.accentLight] as const,
+  high_risk: [colors.background, colors.backgroundSecondary, colors.warningSoft] as const,
+  achievement: [colors.background, colors.backgroundSecondary, colors.milestoneSoft] as const,
 };
 
 export function AssistantScreen() {
@@ -72,6 +75,7 @@ export function AssistantScreen() {
   const avatarTranslateY = useSharedValue(120);
   const avatarScale = useSharedValue(0.3);
   const avatarRotate = useSharedValue(0);
+  const avatarOpacity = useSharedValue(0);
   const bubbleOpacity = useSharedValue(0);
   const chatHeight = useSharedValue(0);
   const breathingScale = useSharedValue(1);
@@ -131,6 +135,7 @@ export function AssistantScreen() {
     });
     avatarScale.value = withSpring(1, { damping: 16, stiffness: 100 });
     avatarRotate.value = withTiming(2, { duration: 600, easing: Easing.out(Easing.ease) });
+    avatarOpacity.value = withDelay(200, withTiming(1, { duration: 500 }));
     const t = setTimeout(() => setPhase('presence'), 600);
     return () => clearTimeout(t);
   }, [phase]);
@@ -226,6 +231,10 @@ export function AssistantScreen() {
     ],
   }));
 
+  const avatarImageStyle = useAnimatedStyle(() => ({
+    opacity: avatarOpacity.value,
+  }));
+
   const breathingStyle = useAnimatedStyle(() => ({
     transform: [{ scale: breathingScale.value }],
   }));
@@ -247,10 +256,10 @@ export function AssistantScreen() {
     return (
       <View style={styles.loadingRoot}>
         <LinearGradient
-          colors={['#4A148C', '#7B1FA2']}
+          colors={[colors.background, colors.backgroundSecondary]}
           style={StyleSheet.absoluteFill}
         />
-        <ActivityIndicator size="large" color="#FFF" />
+        <ActivityIndicator size="large" color={colors.accent} />
         <Text style={styles.loadingLabel}>Preparing your space...</Text>
       </View>
     );
@@ -259,7 +268,7 @@ export function AssistantScreen() {
   const exitMessage = "I'll be here whenever you need me.";
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <LinearGradient
         colors={[...moodGradient]}
         style={StyleSheet.absoluteFill}
@@ -271,21 +280,19 @@ export function AssistantScreen() {
         <Animated.View style={[styles.particle, styles.p3, p3Style]} />
       </View>
 
-      <Pressable style={styles.closeButton} onPress={handleClose}>
-        <MaterialCommunityIcons name="close" size={28} color="rgba(255,255,255,0.9)" />
+      <Pressable style={[styles.closeButton, { top: insets.top + 12, right: spacing.md + insets.right }]} onPress={handleClose}>
+        <MaterialCommunityIcons name="close" size={28} color={colors.textPrimary} />
       </Pressable>
 
-      <View style={styles.avatarRow}>
+      <View style={[styles.avatarRow, { paddingLeft: spacing.lg + insets.left, paddingRight: spacing.lg + insets.right }]}>
         <Animated.View style={[styles.avatarWrap, avatarContainerStyle]}>
-          <Animated.View style={[styles.avatarOuter, breathingStyle]}>
-            <LinearGradient
-              colors={['#E8E0F0', '#D1C4E9', '#B39DDB']}
-              style={styles.avatarCircle}
-            >
-              <MaterialCommunityIcons name="face-agent" size={48} color="#5E35B1" />
-            </LinearGradient>
+          <Animated.View style={[styles.avatarOuter, breathingStyle, { width: AVATAR_SIZE, height: AVATAR_SIZE }]}>
+            <Animated.Image
+              source={BOT_IMAGE}
+              style={[styles.avatarImage, avatarImageStyle, { width: AVATAR_SIZE, height: AVATAR_SIZE }]}
+              resizeMode="contain"
+            />
           </Animated.View>
-          <View style={styles.avatarShadow} />
         </Animated.View>
 
         {(phase === 'greeting' || phase === 'chat' || phase === 'exit') && (
@@ -299,7 +306,17 @@ export function AssistantScreen() {
         )}
       </View>
 
-      <Animated.View style={[styles.chatSection, chatPanelStyle]}>
+      <Animated.View
+        style={[
+          styles.chatSection,
+          chatPanelStyle,
+          {
+            paddingLeft: spacing.md + insets.left,
+          paddingRight: spacing.md + insets.right,
+            paddingBottom: spacing.lg + insets.bottom,
+          },
+        ]}
+      >
         <KeyboardAvoidingView
           style={styles.keyboardView}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -330,7 +347,7 @@ export function AssistantScreen() {
             {sending && (
               <View style={[styles.messageRow, styles.messageRowAssistant]}>
                 <View style={[styles.bubbleMessage, styles.bubbleAssistant]}>
-                  <ActivityIndicator size="small" color="rgba(255,255,255,0.8)" />
+                  <ActivityIndicator size="small" color={colors.accent} />
                 </View>
               </View>
             )}
@@ -353,11 +370,10 @@ export function AssistantScreen() {
 
           <View style={styles.inputRow}>
             <View style={styles.inputWrap}>
-              <MaterialCommunityIcons name="microphone-outline" size={22} color="rgba(255,255,255,0.7)" />
               <TextInput
                 style={styles.input}
                 placeholder="Share what's on your mind..."
-                placeholderTextColor="rgba(255,255,255,0.5)"
+                placeholderTextColor={colors.textMuted}
                 value={inputText}
                 onChangeText={setInputText}
                 multiline
@@ -370,7 +386,7 @@ export function AssistantScreen() {
               onPress={() => sendMessage(inputText)}
               disabled={sending}
             >
-              <MaterialCommunityIcons name="send" size={22} color="#FFF" />
+              <MaterialCommunityIcons name="send" size={22} color={colors.textOnAccent} />
             </Pressable>
           </View>
         </KeyboardAvoidingView>
@@ -385,19 +401,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: '#4A148C',
+    backgroundColor: colors.background,
   },
   loadingLabel: {
     ...typography.bodyMedium,
-    color: 'rgba(255,255,255,0.9)',
+    color: colors.textSecondary,
   },
   screen: {
     flex: 1,
-    backgroundColor: '#4A148C',
+    backgroundColor: colors.background,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.03)',
   },
   particles: {
     ...StyleSheet.absoluteFillObject,
@@ -408,7 +424,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: colors.accentSoft,
   },
   p1: { left: '18%', top: '22%' },
   p2: { left: '72%', top: '35%' },
@@ -432,49 +448,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarOuter: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  avatarCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarShadow: {
-    position: 'absolute',
-    bottom: -4,
-    width: 70,
-    height: 12,
-    borderRadius: 35,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
+  avatarImage: {},
   bubbleWrap: {
     flex: 1,
     justifyContent: 'flex-end',
     maxWidth: SCREEN_WIDTH * 0.7,
   },
   bubble: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: colors.backgroundCard,
     borderRadius: 20,
     borderBottomLeftRadius: 6,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   bubbleText: {
     ...typography.body,
@@ -483,8 +478,6 @@ const styles = StyleSheet.create({
   },
   chatSection: {
     minHeight: 0,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.lg,
   },
   keyboardView: {
     flex: 1,
@@ -514,14 +507,21 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   bubbleUser: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: colors.accentLight,
     borderBottomRightRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.accentSoft,
   },
   bubbleAssistant: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: colors.backgroundCard,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
+    borderColor: colors.borderLight,
+    shadowColor: colors.shadowLight,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   messageText: {
     ...typography.bodySmall,
@@ -539,38 +539,42 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: colors.backgroundCard,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
+    borderColor: colors.accentSoft,
   },
   chipPressed: {
-    opacity: 0.8,
+    opacity: 0.85,
+    backgroundColor: colors.accentSoft,
   },
   chipText: {
     ...typography.caption,
-    color: '#FFF',
+    color: colors.accent,
+    fontWeight: '600',
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: spacing.sm,
+    minWidth: 0,
   },
   inputWrap: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: colors.backgroundCard,
     borderRadius: 24,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    gap: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: colors.borderLight,
   },
   input: {
     flex: 1,
+    minWidth: 0,
     ...typography.body,
-    color: '#FFF',
+    color: colors.textPrimary,
     maxHeight: 100,
     paddingVertical: Platform.OS === 'ios' ? spacing.sm : 0,
   },
@@ -578,7 +582,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
