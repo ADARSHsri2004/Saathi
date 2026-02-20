@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { Feather } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '../../../theme';
+import { buildLeafletMapHtml } from './leafletMapHtml';
 
 type Zone = {
   id: string;
@@ -16,15 +17,18 @@ type Zone = {
 type CurrentLocationMapProps = {
   location: { latitude: number; longitude: number } | null;
   zones: Zone[];
+  draftCenter: { latitude: number; longitude: number } | null;
+  draftRadius: number;
+  onMapPress?: (coords: { latitude: number; longitude: number }) => void;
 };
 
-function buildOsmEmbedUrl(lat: number, lon: number): string {
-  const delta = 0.005;
-  const bbox = [lon - delta, lat - delta, lon + delta, lat + delta].join(',');
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}`;
-}
-
-export function CurrentLocationMap({ location, zones }: CurrentLocationMapProps) {
+export function CurrentLocationMap({
+  location,
+  zones,
+  draftCenter,
+  draftRadius,
+  onMapPress,
+}: CurrentLocationMapProps) {
   if (Platform.OS === 'android') {
     if (!location) {
       return (
@@ -34,34 +38,61 @@ export function CurrentLocationMap({ location, zones }: CurrentLocationMapProps)
         </View>
       );
     }
+    const html = buildLeafletMapHtml(location, zones, draftCenter, draftRadius);
     return (
       <WebView
-        source={{ uri: buildOsmEmbedUrl(location.latitude, location.longitude) }}
+        source={{ html }}
         style={styles.map}
         scrollEnabled={false}
+        originWhitelist={['*']}
+        onMessage={(e) => {
+          try {
+            const data = JSON.parse(e.nativeEvent.data);
+            if (data.type === 'draftMove' && onMapPress) {
+              onMapPress({ latitude: data.lat, longitude: data.lng });
+            }
+          } catch {
+            //
+          }
+        }}
       />
     );
   }
 
-  const region = location
-    ? {
-        ...location,
+  const mapRef = useRef<MapView>(null);
+  const prevCenter = useRef<{ latitude: number; longitude: number } | null>(null);
+
+  useEffect(() => {
+    if (!draftCenter || !mapRef.current) return;
+    const prev = prevCenter.current;
+    const dist = prev
+      ? Math.hypot(draftCenter.latitude - prev.latitude, draftCenter.longitude - prev.longitude)
+      : 1;
+    prevCenter.current = draftCenter;
+    if (dist > 0.002) {
+      mapRef.current.animateToRegion({
+        ...draftCenter,
         latitudeDelta: 0.005,
         longitudeDelta: 0.005,
-      }
-    : {
-        latitude: 25.241,
-        longitude: 86.985,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      };
+      }, 400);
+    }
+  }, [draftCenter?.latitude, draftCenter?.longitude]);
+
+  const centerForRegion = draftCenter ?? location ?? { latitude: 25.241, longitude: 86.985 };
+  const region = {
+    ...centerForRegion,
+    latitudeDelta: 0.005,
+    longitudeDelta: 0.005,
+  };
 
   return (
     <MapView
+      ref={mapRef}
       style={styles.map}
       initialRegion={region}
       showsUserLocation
       showsMyLocationButton
+      onPress={onMapPress ? (e) => onMapPress(e.nativeEvent.coordinate) : undefined}
     >
       {location && (
         <Marker
@@ -71,14 +102,37 @@ export function CurrentLocationMap({ location, zones }: CurrentLocationMapProps)
         />
       )}
       {zones.map((zone) => (
-        <Circle
-          key={zone.id}
-          center={{ latitude: zone.latitude, longitude: zone.longitude }}
-          radius={zone.radius}
-          strokeColor="rgba(82, 183, 136, 0.8)"
-          fillColor="rgba(82, 183, 136, 0.2)"
-        />
+        <React.Fragment key={zone.id}>
+          <Marker
+            coordinate={{ latitude: zone.latitude, longitude: zone.longitude }}
+            title={zone.name}
+            pinColor="#E53935"
+          />
+          <Circle
+            center={{ latitude: zone.latitude, longitude: zone.longitude }}
+            radius={zone.radius}
+            strokeColor="rgba(229, 57, 53, 0.8)"
+            fillColor="rgba(229, 57, 53, 0.2)"
+          />
+        </React.Fragment>
       ))}
+      {draftCenter && (
+        <>
+          <Marker
+            coordinate={draftCenter}
+            title="New zone"
+            pinColor="#E53935"
+            draggable
+            onDragEnd={(e) => onMapPress?.(e.nativeEvent.coordinate)}
+          />
+          <Circle
+            center={draftCenter}
+            radius={draftRadius}
+            strokeColor="rgba(229, 57, 53, 0.7)"
+            fillColor="rgba(229, 57, 53, 0.15)"
+          />
+        </>
+      )}
     </MapView>
   );
 }

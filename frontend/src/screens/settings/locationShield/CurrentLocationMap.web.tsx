@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../../../theme';
+import { buildLeafletMapHtml } from './leafletMapHtml';
 
 type Zone = {
   id: string;
@@ -14,16 +15,38 @@ type Zone = {
 type CurrentLocationMapProps = {
   location: { latitude: number; longitude: number } | null;
   zones: Zone[];
+  draftCenter: { latitude: number; longitude: number } | null;
+  draftRadius: number;
+  onMapPress?: (coords: { latitude: number; longitude: number }) => void;
 };
 
-function buildOsmEmbedUrl(lat: number, lon: number): string {
-  const delta = 0.005;
-  const bbox = [lon - delta, lat - delta, lon + delta, lat + delta].join(',');
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}`;
-}
+export function CurrentLocationMap({
+  location,
+  zones,
+  draftCenter,
+  draftRadius,
+  onMapPress,
+}: CurrentLocationMapProps) {
+  const onMapPressRef = useRef(onMapPress);
+  onMapPressRef.current = onMapPress;
 
-export function CurrentLocationMap({ location }: CurrentLocationMapProps) {
-  if (!location) {
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      try {
+        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+        if (data?.type === 'draftMove' && onMapPressRef.current) {
+          onMapPressRef.current({ latitude: data.lat, longitude: data.lng });
+        }
+      } catch {
+        //
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const hasAnyPoint = location || zones.length > 0 || draftCenter;
+  if (!hasAnyPoint) {
     return (
       <View style={styles.placeholder}>
         <Feather name="map-pin" size={48} color={colors.textMuted} />
@@ -32,13 +55,13 @@ export function CurrentLocationMap({ location }: CurrentLocationMapProps) {
     );
   }
 
-  const iframeSrc = buildOsmEmbedUrl(location.latitude, location.longitude);
+  const html = buildLeafletMapHtml(location, zones, draftCenter, draftRadius);
 
   return (
     <View style={styles.container}>
       <iframe
-        title="Current location"
-        src={iframeSrc}
+        title="Map"
+        srcDoc={html}
         style={styles.iframe as any}
       />
     </View>

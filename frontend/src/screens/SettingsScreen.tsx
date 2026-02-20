@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../navigation/MainStack';
 import Animated, {
@@ -13,6 +14,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { AppHeader } from '../components/AppHeader';
 import { colors, spacing, typography, borderRadius } from '../theme';
+import { LOCATION_SHIELD_SETUP_KEY } from './settings/locationShield/LocationShieldAllSet';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable) as any;
 
@@ -21,13 +23,25 @@ type NavProp = NativeStackNavigationProp<MainStackParamList, 'Settings'>;
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavProp>();
-  const [locationShieldActive, setLocationShieldActive] = React.useState(false);
+  const [locationShieldActive, setLocationShieldActive] = useState(false);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      AsyncStorage.getItem(LOCATION_SHIELD_SETUP_KEY).then((v) => {
+        setLocationShieldActive(v === 'true');
+      });
+    }, [])
+  );
 
   const handleLocationShieldPress = () => {
     if (Platform.OS === 'ios') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    navigation.navigate('LocationShieldStack');
+    if (locationShieldActive) {
+      navigation.navigate('LocationShieldStack', { screen: 'RiskZones' });
+    } else {
+      navigation.navigate('LocationShieldStack');
+    }
   };
 
   return (

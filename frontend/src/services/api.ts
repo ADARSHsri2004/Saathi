@@ -473,6 +473,46 @@ export class CompanionApi {
   }
 }
 
+export interface RiskZoneItem {
+  id: string;
+  latitude: number;
+  longitude: number;
+  radius: number;
+  name: string;
+}
+
+export class LocationShieldApi {
+  static async getZones(userId: string): Promise<RiskZoneItem[]> {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/location-shield/zones`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data: ApiResponse<RiskZoneItem[]> = await response.json();
+    if (!data.success) throw new Error(data.error || 'Failed to get risk zones');
+    return data.data!;
+  }
+
+  static async saveZones(userId: string, zones: Omit<RiskZoneItem, 'id'>[]): Promise<RiskZoneItem[]> {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/location-shield/zones`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        zones: zones.map((z) => ({
+          latitude: z.latitude,
+          longitude: z.longitude,
+          radius: z.radius,
+          name: z.name,
+        })),
+      }),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data: ApiResponse<RiskZoneItem[]> = await response.json();
+    if (!data.success) throw new Error(data.error || 'Failed to save risk zones');
+    return data.data!;
+  }
+}
+
 export class AssistantApi {
   static async getContext(userId: string) {
     const response = await fetch(`${API_BASE_URL}/users/${userId}/assistant/context`, {

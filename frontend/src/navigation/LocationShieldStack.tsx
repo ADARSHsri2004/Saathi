@@ -4,22 +4,19 @@ import { colors } from '../theme';
 import { LocationShieldIntro } from '../screens/settings/locationShield/LocationShieldIntro';
 import { PermissionExplainer } from '../screens/settings/locationShield/PermissionExplainer';
 import { RiskZoneMap } from '../screens/settings/locationShield/RiskZoneMap';
-import { AlertStyleSelector, type AlertStyle } from '../screens/settings/locationShield/AlertStyleSelector';
-import { NotificationPreview } from '../screens/settings/locationShield/NotificationPreview';
+import { LocationShieldAllSet } from '../screens/settings/locationShield/LocationShieldAllSet';
 
 export type LocationShieldStackParamList = {
   Intro: undefined;
   Permission: undefined;
   RiskZones: undefined;
-  AlertStyle: undefined;
-  NotificationPreview: { alertStyle: AlertStyle };
+  AllSet: undefined;
 };
 
 const Stack = createNativeStackNavigator<LocationShieldStackParamList>();
 
 export function LocationShieldStack() {
   const [riskZones, setRiskZones] = useState<any[]>([]);
-  const [alertStyle, setAlertStyle] = useState<AlertStyle>('gentle');
 
   return (
     <Stack.Navigator
@@ -39,9 +36,7 @@ export function LocationShieldStack() {
         {({ navigation }) => (
           <PermissionExplainer
             onAllow={() => navigation.navigate('RiskZones')}
-            onDenied={() => {
-              // Handle denial gracefully
-            }}
+            onDenied={() => {}}
           />
         )}
       </Stack.Screen>
@@ -50,27 +45,14 @@ export function LocationShieldStack() {
           <RiskZoneMap
             onContinue={(zones) => {
               setRiskZones(zones);
-              navigation.navigate('AlertStyle');
+              navigation.navigate('AllSet');
             }}
           />
         )}
       </Stack.Screen>
-      <Stack.Screen name="AlertStyle">
+      <Stack.Screen name="AllSet">
         {({ navigation }) => (
-          <AlertStyleSelector
-            onSelect={(style) => {
-              setAlertStyle(style);
-              navigation.navigate('NotificationPreview', { alertStyle: style });
-            }}
-          />
-        )}
-      </Stack.Screen>
-      <Stack.Screen name="NotificationPreview">
-        {({ navigation, route }) => (
-          <NotificationPreview
-            alertStyle={route.params.alertStyle}
-            onContinue={() => navigation.getParent()?.goBack()}
-          />
+          <LocationShieldAllSet onContinue={() => navigation.getParent()?.goBack()} />
         )}
       </Stack.Screen>
     </Stack.Navigator>
