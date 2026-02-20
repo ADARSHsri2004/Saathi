@@ -11,7 +11,12 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.saathi.app"
+      "bundleIdentifier": "com.saathi.app",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location"
+        ]
+      }
     },
     "android": {
       "backgroundColor": "#1a1a1a",
@@ -20,9 +25,9 @@
     "scheme": "saathi",
     "extra": {
       "eas": {
-        "projectId": "25f233f2-ebea-4c72-8ed9-46c200353a43"
+        "projectId": "8e2ac4cd-abe8-4c37-b633-21226122297c"
       }
     },
-    "owner": "abhaysri619"
+    "owner": "adarshlolu"
   }
 }

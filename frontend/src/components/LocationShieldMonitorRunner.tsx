@@ -11,8 +11,6 @@ export function LocationShieldMonitorRunner() {
     const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
       if (state === 'active') {
         startLocationShieldMonitor();
-      } else if (state === 'background') {
-        stopLocationShieldMonitor();
       }
     });
     return () => {
