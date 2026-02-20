@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, ScrollView, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, {
@@ -23,6 +23,7 @@ type LocationShieldAllSetProps = {
 
 export function LocationShieldAllSet({ onContinue }: LocationShieldAllSetProps) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const titleOpacity = useSharedValue(0);
   const subtitleOpacity = useSharedValue(0);
   const buttonOpacity = useSharedValue(0);
@@ -69,22 +70,28 @@ export function LocationShieldAllSet({ onContinue }: LocationShieldAllSetProps) 
         colors={['#0A1929', '#1A3A5C', '#2D5A7A']}
         style={StyleSheet.absoluteFill}
       />
-      <View style={styles.content}>
-        <View style={styles.orbContainer}>
-          <ShieldOrb size={140} intensity={0.9} />
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + spacing.lg }]}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={[styles.content, { maxWidth: width }]}>
+          <View style={styles.orbContainer}>
+            <ShieldOrb size={140} intensity={0.9} />
+          </View>
+          <Animated.View style={[styles.textContainer, titleStyle]}>
+            <Text style={styles.title}>All set</Text>
+          </Animated.View>
+          <Animated.View style={[styles.textContainer, subtitleStyle]}>
+            <Text style={styles.subtitle}>
+              You'll get an alert on your phone when you're near a risk zone.
+            </Text>
+          </Animated.View>
+          <Animated.View style={[styles.buttonContainer, buttonStyle, { maxWidth: width - spacing.xl * 2 }]}>
+            <PrimaryButton label="Done" onPress={handleDone} showArrow={true} />
+          </Animated.View>
         </View>
-        <Animated.View style={[styles.textContainer, titleStyle]}>
-          <Text style={styles.title}>All set</Text>
-        </Animated.View>
-        <Animated.View style={[styles.textContainer, subtitleStyle]}>
-          <Text style={styles.subtitle}>
-            You'll get an alert on your phone when you're near a risk zone.
-          </Text>
-        </Animated.View>
-        <Animated.View style={[styles.buttonContainer, buttonStyle]}>
-          <PrimaryButton label="Done" onPress={handleDone} showArrow={true} />
-        </Animated.View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -93,8 +100,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   content: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
@@ -114,6 +125,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '700',
     marginBottom: spacing.md,
+    flexShrink: 1,
   },
   subtitle: {
     ...typography.body,
@@ -121,10 +133,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
     lineHeight: 26,
+    flexShrink: 1,
   },
   buttonContainer: {
     marginTop: spacing.xl,
     width: '100%',
-    maxWidth: 300,
+    alignSelf: 'stretch',
   },
 });

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, Dimensions, Pressable, Platform, ActivityIndicator, ScrollView, TouchableOpacity, LayoutChangeEvent } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, Platform, ActivityIndicator, ScrollView, TouchableOpacity, LayoutChangeEvent, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, {
@@ -26,7 +26,6 @@ import { LocationShieldApi } from '../../../services/api';
 const USER_ID_KEY = 'user_id';
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 
-const { width } = Dimensions.get('window');
 const MIN_RADIUS = 50;
 const MAX_RADIUS = 500;
 
@@ -51,6 +50,7 @@ const DEFAULT_REGION = {
 
 export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -63,7 +63,7 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
   const [radius, setRadius] = useState(100);
   const radiusShared = useSharedValue(100);
   const sliderProgress = useSharedValue((100 - MIN_RADIUS) / (MAX_RADIUS - MIN_RADIUS));
-  const trackWidth = useSharedValue(width - spacing.lg * 2);
+  const trackWidth = useSharedValue(Math.max(0, width - spacing.lg * 2));
   const rippleScale = useSharedValue(1);
   const particleOpacity = useSharedValue(0);
   const particleX = useSharedValue(width / 2);
@@ -322,111 +322,115 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
         style={StyleSheet.absoluteFill}
       />
 
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Mark Places That Feel Risky</Text>
-          <Text style={styles.subtitle}>Saathi will alert you if you get close.</Text>
-        </View>
-
-        {/* Glassmorphism search bar */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Feather name="search" size={20} color={colors.textMuted} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search for a place..."
-              placeholderTextColor={colors.textMuted}
-              value={searchText}
-              onChangeText={(t) => { setSearchText(t); setSearchResults([]); }}
-              onSubmitEditing={searchPlaces}
-              returnKeyType="search"
-            />
-            <Pressable onPress={searchPlaces} style={styles.searchButton} disabled={searching || !searchText.trim()}>
-              {searching ? (
-                <ActivityIndicator size="small" color={colors.accent} />
-              ) : (
-                <Feather name="arrow-right" size={20} color={colors.accent} />
-              )}
-            </Pressable>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + spacing.lg }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={[styles.content, { maxWidth: width }]}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Mark Places That Feel Risky</Text>
+            <Text style={styles.subtitle}>Saathi will alert you if you get close.</Text>
           </View>
-          {searchResults.length > 0 && (
-            <View style={styles.searchResults}>
-              <ScrollView keyboardShouldPersistTaps="handled" style={styles.searchResultsScroll}>
-                {searchResults.map((r, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    style={styles.searchResultItem}
-                    onPress={() => selectSearchResult(r.lat, r.lon)}
-                    activeOpacity={0.7}
-                  >
-                    <Feather name="map-pin" size={16} color={colors.textMuted} />
-                    <Text style={styles.searchResultText} numberOfLines={2}>{r.display_name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-        </View>
 
-        <View style={styles.mapContainer}>
-          {locationLoading ? (
-            <View style={styles.mapPlaceholder}>
-              <ActivityIndicator size="large" color={colors.accent} />
-              <Text style={styles.mapLoadingText}>Getting your location...</Text>
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBar}>
+              <Feather name="search" size={20} color={colors.textMuted} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search for a place..."
+                placeholderTextColor={colors.textMuted}
+                value={searchText}
+                onChangeText={(t) => { setSearchText(t); setSearchResults([]); }}
+                onSubmitEditing={searchPlaces}
+                returnKeyType="search"
+              />
+              <Pressable onPress={searchPlaces} style={styles.searchButton} disabled={searching || !searchText.trim()}>
+                {searching ? (
+                  <ActivityIndicator size="small" color={colors.accent} />
+                ) : (
+                  <Feather name="arrow-right" size={20} color={colors.accent} />
+                )}
+              </Pressable>
             </View>
-          ) : locationError && !location ? (
-            <View style={styles.mapPlaceholder}>
-              <Feather name="map-pin" size={48} color={colors.textMuted} />
-              <Text style={styles.mapLoadingText}>{locationError}</Text>
-            </View>
-          ) : (
-            <CurrentLocationMap
-              location={location}
-              zones={zones}
-              draftCenter={draftCenter}
-              draftRadius={radius}
-              onMapPress={handleMapPress}
-            />
-          )}
-        </View>
+            {searchResults.length > 0 && (
+              <View style={styles.searchResults}>
+                <ScrollView keyboardShouldPersistTaps="handled" style={styles.searchResultsScroll}>
+                  {searchResults.map((r, i) => (
+                    <TouchableOpacity
+                      key={i}
+                      style={styles.searchResultItem}
+                      onPress={() => selectSearchResult(r.lat, r.lon)}
+                      activeOpacity={0.7}
+                    >
+                      <Feather name="map-pin" size={16} color={colors.textMuted} />
+                      <Text style={styles.searchResultText} numberOfLines={2}>{r.display_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
 
-        <View style={styles.sliderContainer}>
-          <Text style={styles.sliderLabel}>Alert Radius</Text>
-          <GestureDetector gesture={sliderComposed}>
-            <Animated.View style={styles.sliderTrack} onLayout={onSliderLayout}>
-              <Animated.View style={[styles.sliderFill, sliderFillStyle]} />
-              <Animated.View style={[styles.sliderThumb, sliderThumbStyle]} />
+          <View style={styles.mapContainer}>
+            {locationLoading ? (
+              <View style={styles.mapPlaceholder}>
+                <ActivityIndicator size="large" color={colors.accent} />
+                <Text style={styles.mapLoadingText}>Getting your location...</Text>
+              </View>
+            ) : locationError && !location ? (
+              <View style={styles.mapPlaceholder}>
+                <Feather name="map-pin" size={48} color={colors.textMuted} />
+                <Text style={styles.mapLoadingText}>{locationError}</Text>
+              </View>
+            ) : (
+              <CurrentLocationMap
+                location={location}
+                zones={zones}
+                draftCenter={draftCenter}
+                draftRadius={radius}
+                onMapPress={handleMapPress}
+              />
+            )}
+          </View>
+
+          <View style={styles.sliderContainer}>
+            <Text style={styles.sliderLabel}>Alert Radius</Text>
+            <GestureDetector gesture={sliderComposed}>
+              <Animated.View style={styles.sliderTrack} onLayout={onSliderLayout}>
+                <Animated.View style={[styles.sliderFill, sliderFillStyle]} />
+                <Animated.View style={[styles.sliderThumb, sliderThumbStyle]} />
+              </Animated.View>
+            </GestureDetector>
+            <Text style={styles.radiusValue}>{radius}m</Text>
+          </View>
+
+          <View style={styles.orbContainer}>
+            <Animated.View style={orbStyle}>
+              <ShieldOrb size={80} intensity={orbIntensity.value} />
             </Animated.View>
-          </GestureDetector>
-          <Text style={styles.radiusValue}>{radius}m</Text>
-        </View>
+            <Animated.View style={[styles.particle, particleStyle]}>
+              <View style={styles.particleGlow} />
+            </Animated.View>
+          </View>
 
-        {/* Shield orb with particles */}
-        <View style={styles.orbContainer}>
-          <Animated.View style={orbStyle}>
-            <ShieldOrb size={80} intensity={orbIntensity.value} />
-          </Animated.View>
-          <Animated.View style={[styles.particle, particleStyle]}>
-            <View style={styles.particleGlow} />
-          </Animated.View>
-        </View>
-
-        {/* Action buttons */}
-        <View style={styles.actions}>
-          {zones.length > 0 && (
+          <View style={[styles.actions, { maxWidth: width - spacing.lg * 2 }]}>
+            {zones.length > 0 && (
+              <PrimaryButton
+                label="Add Another"
+                onPress={handleSaveZone}
+                style={[styles.addButton, styles.actionButton]}
+              />
+            )}
             <PrimaryButton
-              label="Add Another"
-              onPress={handleSaveZone}
-              style={styles.addButton}
+              label={zones.length === 0 ? 'Save Zone' : 'Continue'}
+              onPress={zones.length === 0 ? handleSaveZone : handleContinue}
+              showArrow={true}
+              style={styles.actionButton}
             />
-          )}
-          <PrimaryButton
-            label={zones.length === 0 ? 'Save Zone' : 'Continue'}
-            onPress={zones.length === 0 ? handleSaveZone : handleContinue}
-            showArrow={true}
-          />
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -435,8 +439,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
-    flex: 1,
     paddingHorizontal: spacing.lg,
   },
   header: {
@@ -451,12 +457,14 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '700',
     marginBottom: spacing.xs,
+    flexShrink: 1,
   },
   subtitle: {
     ...typography.body,
     color: 'rgba(255, 255, 255, 0.75)',
     textAlign: 'center',
     fontSize: 15,
+    flexShrink: 1,
   },
   searchContainer: {
     marginBottom: spacing.lg,
@@ -507,7 +515,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   mapContainer: {
-    flex: 1,
+    minHeight: 220,
+    height: 220,
     marginVertical: spacing.lg,
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
@@ -628,10 +637,16 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   actions: {
+    width: '100%',
     gap: spacing.md,
     marginBottom: spacing.lg,
+    alignSelf: 'stretch',
   },
   addButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  actionButton: {
+    alignSelf: 'stretch',
+    width: '100%',
   },
 });
