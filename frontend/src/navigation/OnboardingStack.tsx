@@ -11,7 +11,9 @@ import { colors } from '../theme/index';
 
 export type OnboardingStackParamList = {
   Intro: undefined;
+  RoleSelection: undefined;
   BasicDetails: undefined;
+  CompanionLink: undefined;
   AwarenessContext: undefined;
   PatternsImpact: undefined;
   Complete: undefined;

@@ -35,5 +35,6 @@ router.get('/users/:userId/rewards', RewardsController.getRewards);
 router.get('/users/:userId/companion', CompanionController.get);
 router.post('/users/:userId/companion', CompanionController.add);
 router.delete('/users/:userId/companion', CompanionController.remove);
+router.get('/companion/patient/:patientId/dashboard', CompanionController.getPatientDashboard);
 
 export default router;

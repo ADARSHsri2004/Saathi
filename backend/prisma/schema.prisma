@@ -13,6 +13,7 @@ datasource db {
 model User {
   id                String   @id @default(cuid())
   displayName       String
+  role              String   @default("patient")
   age               Int?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

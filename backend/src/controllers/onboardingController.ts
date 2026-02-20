@@ -19,7 +19,7 @@ export class OnboardingController {
     res: Response<ApiResponse<CreateUserResponse>>
   ) {
     try {
-      const { displayName, age } = req.body;
+      const { displayName, age, role } = req.body as any;
 
       if (!displayName || displayName.trim().length === 0) {
         return res.status(400).json({
@@ -32,6 +32,7 @@ export class OnboardingController {
         data: {
           displayName,
           age: age ? parseInt(age.toString()) : null,
+          role: role === 'companion' ? 'companion' : 'patient',
         },
       });
 

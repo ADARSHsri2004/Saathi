@@ -49,6 +49,8 @@ export interface OnboardingState {
   userId: string;
   displayName: string;
   age: string;
+  role: 'patient' | 'companion' | null;
+  patientId: string;
   addictionTypes: AddictionType[];
   whenItHappens: WhenItHappens[];
   feelAfter: FeelAfter | null;
@@ -65,6 +67,8 @@ const initialState: OnboardingState = {
   userId: '',
   displayName: '',
   age: '',
+  role: null,
+  patientId: '',
   addictionTypes: [],
   whenItHappens: [],
   feelAfter: null,
@@ -85,6 +89,8 @@ type OnboardingContextValue = {
   error: string | null;
   setDisplayName: (v: string) => void;
   setAge: (v: string) => void;
+  setRole: (v: 'patient' | 'companion' | null) => void;
+  setPatientId: (v: string) => void;
   setAddictionTypes: (v: AddictionType[] | ((prev: AddictionType[]) => AddictionType[])) => void;
   setWhenItHappens: (v: WhenItHappens[] | ((prev: WhenItHappens[]) => WhenItHappens[])) => void;
   setFeelAfter: (v: FeelAfter | null) => void;
@@ -96,7 +102,7 @@ type OnboardingContextValue = {
   setIntention: (v: Intention | null) => void;
   setDuration: (v: Duration | null) => void;
   reset: () => void;
-  createUser: (displayName: string, age?: number) => Promise<void>;
+  createUser: (displayName: string, age?: number, role?: 'patient' | 'companion') => Promise<void>;
   saveToBackend: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
   markOnboardingComplete: () => Promise<void>;
@@ -135,6 +141,14 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const setAge = useCallback((v: string) => {
     setState((s) => ({ ...s, age: v }));
+  }, []);
+
+  const setRole = useCallback((v: 'patient' | 'companion' | null) => {
+    setState((s) => ({ ...s, role: v }));
+  }, []);
+
+  const setPatientId = useCallback((v: string) => {
+    setState((s) => ({ ...s, patientId: v }));
   }, []);
 
   const setAddictionTypes = useCallback((v: AddictionType[] | ((prev: AddictionType[]) => AddictionType[])) => {
@@ -186,16 +200,17 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const createUser = useCallback(
-    async (displayName: string, age?: number) => {
+    async (displayName: string, age?: number, role?: 'patient' | 'companion') => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await OnboardingApi.createUser(displayName, age);
+        const response = await OnboardingApi.createUser(displayName, age, role);
         setState((s) => ({
           ...s,
           userId: response.id,
           displayName: response.displayName,
           age: response.age ? response.age.toString() : '',
+          role: role || 'patient',
         }));
       } catch (err: any) {
         const errorMessage = err.message || 'Failed to create user';
@@ -301,6 +316,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     error,
     setDisplayName,
     setAge,
+    setRole,
+    setPatientId,
     setAddictionTypes,
     setWhenItHappens,
     setFeelAfter,

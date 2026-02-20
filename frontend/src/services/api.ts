@@ -26,6 +26,7 @@ export interface CreateUserResponse {
   id: string;
   displayName: string;
   age?: number;
+  role?: 'patient' | 'companion';
   createdAt: string;
 }
 
@@ -52,14 +53,14 @@ export class OnboardingApi {
   /**
    * Create a new user
    */
-  static async createUser(displayName: string, age?: number) {
+  static async createUser(displayName: string, age?: number, role?: 'patient' | 'companion') {
     try {
       const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ displayName, age }),
+        body: JSON.stringify({ displayName, age, role }),
       });
 
       if (!response.ok) {
@@ -470,6 +471,17 @@ export class CompanionApi {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data: ApiResponse<{ message: string }> = await response.json();
     if (!data.success) throw new Error(data.error || 'Failed to remove companion');
+  }
+
+  static async getPatientDashboard(patientId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/companion/patient/${patientId}/dashboard`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data: ApiResponse<any> = await response.json();
+    if (!data.success) throw new Error(data.error || 'Failed to get patient dashboard');
+    return data.data!;
   }
 }
 

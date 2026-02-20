@@ -3,6 +3,7 @@ export { BasicDetailsScreen } from './BasicDetailsScreen';
 export { AwarenessContextScreen } from './AwarenessContextScreen';
 export { PatternsImpactScreen } from './PatternsImpactScreen';
 export { CompleteScreen } from './CompleteScreen';
+export { CompanionDashboardScreen } from './CompanionDashboardScreen';
 export { HomeDashboardScreen } from './HomeDashboardScreen';
 export { GamesScreen } from './GamesScreen';
 export { RewardsScreen } from './RewardsScreen';

@@ -54,6 +54,73 @@ export class CompanionController {
     }
   }
 
+  static async getPatientDashboard(req: Request<{ patientId: string }>, res: Response) {
+    try {
+      const { patientId } = req.params;
+      // Note: allow fetching patient dashboard by patientId.
+      // Previously this validated that a RecoveryCompanion record existed for the patient
+      // which prevented companions from viewing a patient's progress by simply providing
+      // the patient ID. To support the companion onboarding flow (paste patient ID
+      // and immediately view progress) we fetch patient data directly. Ensure
+      // the patient exists below and return 404 if not.
+
+      // Get patient's onboarding and relapse data
+      const patientUser = await prisma.user.findUnique({
+        where: { id: patientId },
+      });
+
+      if (!patientUser) {
+        return res.status(404).json({
+          success: false,
+          error: 'Patient not found',
+        });
+      }
+
+      const onboarding = await prisma.onboarding.findUnique({
+        where: { userId: patientId },
+      });
+
+      if (!onboarding) {
+        return res.status(404).json({
+          success: false,
+          error: 'Patient onboarding data not found',
+        });
+      }
+
+      const relapses = await prisma.relapse.findMany({
+        where: { userId: patientId },
+        orderBy: { relapseDate: 'desc' },
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          patient: {
+            id: patientUser?.id,
+            displayName: patientUser?.displayName,
+          },
+          onboarding: {
+            addictionTypes: onboarding.addictionTypes,
+            intention: onboarding.intention,
+            duration: onboarding.duration,
+            journeyStartDate: onboarding.journeyStartDate?.toISOString(),
+            completedAt: onboarding.completedAt?.toISOString(),
+          },
+          relapseInfo: {
+            totalRelapses: relapses.length,
+            lastRelapseDate: relapses[0]?.relapseDate.toISOString() || null,
+            currentStreakDays: relapses.length > 0
+              ? Math.floor((new Date().getTime() - relapses[0].relapseDate.getTime()) / (1000 * 60 * 60 * 24))
+              : Math.floor((new Date().getTime() - (onboarding.journeyStartDate || onboarding.completedAt)!.getTime()) / (1000 * 60 * 60 * 24)),
+          },
+        },
+      });
+    } catch (err) {
+      console.error('Get patient dashboard error:', err);
+      return res.status(500).json({ success: false, error: 'Failed to get patient dashboard' });
+    }
+  }
+
   static async add(
     req: Request<
       { userId: string },

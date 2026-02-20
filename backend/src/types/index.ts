@@ -45,6 +45,7 @@ export type Duration = '7_days' | '14_days' | '30_days' | 'not_sure';
 export interface CreateUserRequest {
   displayName: string;
   age?: number;
+  role?: 'patient' | 'companion';
 }
 
 export interface CreateUserResponse {
