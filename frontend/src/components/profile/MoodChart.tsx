@@ -28,22 +28,27 @@ const LABELS: { key: keyof MoodStats; label: string; color: string }[] = [
   { key: 'low', label: 'Low', color: profileColors.relapse },
 ];
 
+const defaultMoodStats: MoodStats = { calm: 0, anxious: 0, motivated: 0, low: 0 };
+
 export function MoodChart({ moodStats }: MoodChartProps) {
   const progress1 = useSharedValue(0);
   const progress2 = useSharedValue(0);
   const progress3 = useSharedValue(0);
   const progress4 = useSharedValue(0);
+  const safe = moodStats && typeof moodStats === 'object'
+    ? { ...defaultMoodStats, ...moodStats }
+    : defaultMoodStats;
 
   useEffect(() => {
-    const p1 = moodStats.calm / CHART_MAX;
-    const p2 = moodStats.anxious / CHART_MAX;
-    const p3 = moodStats.motivated / CHART_MAX;
-    const p4 = moodStats.low / CHART_MAX;
+    const p1 = (safe.calm ?? 0) / CHART_MAX;
+    const p2 = (safe.anxious ?? 0) / CHART_MAX;
+    const p3 = (safe.motivated ?? 0) / CHART_MAX;
+    const p4 = (safe.low ?? 0) / CHART_MAX;
     progress1.value = withTiming(p1, { duration: 800 });
     progress2.value = withTiming(p2, { duration: 800 });
     progress3.value = withTiming(p3, { duration: 800 });
     progress4.value = withTiming(p4, { duration: 800 });
-  }, [moodStats]);
+  }, [safe]);
 
   const bar1Style = useAnimatedStyle(() => ({ width: `${progress1.value * 100}%` }));
   const bar2Style = useAnimatedStyle(() => ({ width: `${progress2.value * 100}%` }));
@@ -66,7 +71,7 @@ export function MoodChart({ moodStats }: MoodChartProps) {
                 style={[styles.bar, { backgroundColor: color }, barStyles[i]]}
               />
             </View>
-            <Text style={styles.rowValue}>{moodStats[key]}%</Text>
+            <Text style={styles.rowValue}>{safe[key]}%</Text>
           </View>
         ))}
       </View>

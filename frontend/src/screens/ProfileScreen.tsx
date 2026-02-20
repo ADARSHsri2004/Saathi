@@ -49,8 +49,12 @@ function getRiskLevel(riskScore: number): 'low' | 'medium' | 'high' {
   return 'high';
 }
 
-function getDominantMood(moodStats: ProfileResponse['moodStats']): string {
-  const entries = Object.entries(moodStats) as [keyof typeof moodStats, number][];
+const DEFAULT_MOOD_STATS = { calm: 0, anxious: 0, motivated: 0, low: 0 };
+
+function getDominantMood(moodStats: ProfileResponse['moodStats'] | null | undefined): string {
+  const stats = moodStats && typeof moodStats === 'object' ? moodStats : DEFAULT_MOOD_STATS;
+  const entries = Object.entries(stats) as [keyof typeof stats, number][];
+  if (entries.length === 0) return 'Calm';
   const max = entries.reduce((a, b) => (a[1] >= b[1] ? a : b));
   return max[0].charAt(0).toUpperCase() + max[0].slice(1);
 }
@@ -141,11 +145,14 @@ export function ProfileScreen() {
 
   if (!data) return null;
 
+  const moodStats = data.moodStats && typeof data.moodStats === 'object'
+    ? data.moodStats
+    : DEFAULT_MOOD_STATS;
+  const achievements = Array.isArray(data.achievements) ? data.achievements : [];
   const dynamicMessage = getDynamicMessage(data);
   const riskLevel = getRiskLevel(data.riskScore);
-  const dominantMood = getDominantMood(data.moodStats);
-  // console.log("displayName",  data.displayName);
-  console.log("username", data.username);
+  const dominantMood = getDominantMood(moodStats);
+
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
@@ -176,27 +183,27 @@ export function ProfileScreen() {
       >
         <View style={styles.gradientBg}>
           <HeroCard
-            username={(data.displayName && data.displayName.trim()) || data.username?.trim() || 'You'}
-            level={data.level}
-            xpPoints={data.xpPoints}
-            xpToNextLevel={data.xpToNextLevel}
+            username={(data.displayName && data.displayName.trim()) || (data.username && data.username.trim()) || 'You'}
+            level={typeof data.level === 'number' ? data.level : 1}
+            xpPoints={typeof data.xpPoints === 'number' ? data.xpPoints : 0}
+            xpToNextLevel={typeof data.xpToNextLevel === 'number' ? data.xpToNextLevel : 500}
             dynamicMessage={dynamicMessage}
           />
-          <StreakCircle streakDays={data.streakDays} />
+          <StreakCircle streakDays={typeof data.streakDays === 'number' ? data.streakDays : 0} />
 
           <View style={styles.statsGrid}>
             <View style={styles.statsRow}>
               <View style={styles.statsCell}>
                 <StatsCard
                   type="cleanDays"
-                  value={data.totalCleanDays}
+                  value={typeof data.totalCleanDays === 'number' ? data.totalCleanDays : 0}
                   label="Total Clean Days"
                 />
               </View>
               <View style={styles.statsCell}>
                 <StatsCard
                   type="relapses"
-                  value={data.relapseCount}
+                  value={typeof data.relapseCount === 'number' ? data.relapseCount : 0}
                   label="Relapse Count"
                 />
               </View>
@@ -205,7 +212,7 @@ export function ProfileScreen() {
               <View style={styles.statsCell}>
                 <StatsCard
                   type="risk"
-                  value={data.riskScore}
+                  value={typeof data.riskScore === 'number' ? data.riskScore : 0}
                   label="Risk Score"
                   riskLevel={riskLevel}
                 />
@@ -220,8 +227,8 @@ export function ProfileScreen() {
             </View>
           </View>
 
-          <AchievementsList achievements={data.achievements} />
-          <MoodChart moodStats={data.moodStats} />
+          <AchievementsList achievements={achievements} />
+          <MoodChart moodStats={moodStats} />
         </View>
       </ScrollView>
     </View>
