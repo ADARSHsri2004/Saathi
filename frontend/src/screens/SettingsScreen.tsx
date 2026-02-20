@@ -51,6 +51,7 @@ export function SettingsScreen() {
           title="Settings"
           elevated={false}
           onMenuPress={() => {}}
+          onProfilePress={() => navigation.navigate('Profile')}
           onNotificationsPress={() => {}}
           onHelpPress={() => {}}
           onCompanionPress={() => navigation.navigate('Companion')}

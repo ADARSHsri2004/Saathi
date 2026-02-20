@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 import { scale as scaleSize, scaleFont, isSmallScreen } from '../../utils/responsive';
+import { CircularProgressRing } from '../CircularProgressRing';
 
 interface MoneySavedCardProps {
   amount: number;
@@ -27,12 +28,10 @@ export function MoneySavedCard({
 }: MoneySavedCardProps) {
   const animatedAmount = useSharedValue(0);
   const coinFloat = useSharedValue(0);
-  const goalProgress = useSharedValue(0);
   const smallScreen = isSmallScreen();
 
   useEffect(() => {
     animatedAmount.value = withTiming(amount, { duration: 2000 });
-    goalProgress.value = withTiming(amount / goal, { duration: 2000 });
     coinFloat.value = withTiming(1, { duration: 2000 });
   }, [amount, goal]);
 
@@ -51,13 +50,6 @@ export function MoneySavedCard({
   const containerStyle = useAnimatedStyle(() => {
     const opacity = interpolate(scrollY.value, [100, 200], [1, 0.9], 'clamp');
     return { opacity };
-  });
-
-  const goalRingStyle = useAnimatedStyle(() => {
-    const rotation = Math.min(goalProgress.value, 1) * 360;
-    return {
-      transform: [{ rotate: `${rotation}deg` }],
-    };
   });
 
   return (
@@ -98,39 +90,17 @@ export function MoneySavedCard({
         </View>
 
         <View style={styles.goalSection}>
-            <View style={[styles.goalRingWrapper, {
-              width: smallScreen ? scaleSize(70) : scaleSize(80),
-              height: smallScreen ? scaleSize(70) : scaleSize(80),
-            }]}>
-              <View style={[styles.goalRing, {
-                width: smallScreen ? scaleSize(70) : scaleSize(80),
-                height: smallScreen ? scaleSize(70) : scaleSize(80),
-                borderRadius: smallScreen ? scaleSize(35) : scaleSize(40),
-                borderWidth: smallScreen ? 3 : 4,
-              }]}>
-                <Animated.View
-                  style={[
-                    styles.goalRingProgress,
-                    goalRingStyle,
-                    {
-                      width: smallScreen ? scaleSize(70) : scaleSize(80),
-                      height: smallScreen ? scaleSize(70) : scaleSize(80),
-                      borderRadius: smallScreen ? scaleSize(35) : scaleSize(40),
-                      borderWidth: smallScreen ? 3 : 4,
-                    }
-                  ]}
-                />
-              </View>
-            <View style={[styles.goalRingInner, {
-              width: smallScreen ? scaleSize(56) : scaleSize(64),
-              height: smallScreen ? scaleSize(56) : scaleSize(64),
-              borderRadius: smallScreen ? scaleSize(28) : scaleSize(32),
-            }]}>
-              <Text style={[styles.goalPercent, { fontSize: smallScreen ? scaleFont(16) : scaleFont(18) }]}>
-                {Math.round((amount / goal) * 100)}%
-              </Text>
-            </View>
-          </View>
+          <CircularProgressRing
+            value={goal > 0 ? amount : 0}
+            maxValue={goal > 0 ? goal : 1}
+            radius={smallScreen ? 32 : 36}
+            duration={1200}
+            progressValueColor="#FFFFFF"
+            activeStrokeColor="#FFFFFF"
+            inActiveStrokeColor="rgba(255,255,255,0.3)"
+            progressFormatter={(v) => `${goal > 0 ? Math.round((amount / goal) * 100) : 0}%`}
+            showProgressValue={true}
+          />
           <View style={styles.goalTextContainer}>
             <Text style={styles.goalLabel}>Reward Goal</Text>
             <Text style={styles.goalReward}>{goalReward}</Text>
@@ -197,31 +167,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  goalRingWrapper: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  goalRing: {
-    position: 'absolute',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  goalRingProgress: {
-    position: 'absolute',
-    borderColor: 'transparent',
-    borderTopColor: '#FFFFFF',
-    borderRightColor: '#FFFFFF',
-    transform: [{ rotate: '-90deg' }],
-  },
-  goalRingInner: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  goalPercent: {
-    ...typography.titleSmall,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
   goalTextContainer: {
     flex: 1,

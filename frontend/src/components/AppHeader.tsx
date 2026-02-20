@@ -95,7 +95,7 @@ export function AppHeader({
     (fn?: () => void) => {
       if (Platform.OS === 'ios') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       closeSidebar();
-      setTimeout(() => fn?.(), 120);
+      setTimeout(() => fn?.(), SLIDE_DURATION + 80);
     },
     [closeSidebar]
   );

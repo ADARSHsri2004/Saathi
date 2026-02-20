@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,17 +9,15 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
-  runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import { PrimaryButton, ProgressIndicator } from '../components/index';
+import { AppSlider } from '../components/AppSlider';
 import { useOnboarding } from '../context/OnboardingContext';
 import type { FrequencyUnit, ImpactArea } from '../context/OnboardingContext';
 import { colors, typography, spacing, borderRadius } from '../theme/index';
@@ -44,8 +42,6 @@ const SLIDER_CONFIG = {
   per_week: { min: 1, max: 50 },
   per_day: { min: 1, max: 20 },
 };
-
-const SPRING_CONFIG = { damping: 20, stiffness: 200 };
 
 function FrequencySegment({
   unit,
@@ -83,94 +79,6 @@ function FrequencySegment({
         <Animated.Text style={[styles.segmentLabel, textStyle]}>{opt.label}</Animated.Text>
       </Animated.View>
     </Pressable>
-  );
-}
-
-function FrequencySlider({
-  unit,
-  value,
-  onValueChange,
-}: {
-  unit: FrequencyUnit;
-  value: number;
-  onValueChange: (v: number) => void;
-}) {
-  const { min, max } = SLIDER_CONFIG[unit];
-  const trackWidth = useSharedValue(280);
-  const rawValue = useSharedValue((value - min) / (max - min));
-
-  const onValueChangeRef = useRef(onValueChange);
-  onValueChangeRef.current = onValueChange;
-
-  useEffect(() => {
-    const norm = (value - min) / (max - min);
-    rawValue.value = withSpring(norm, SPRING_CONFIG);
-  }, [value, min, max]);
-
-  const updateValue = useCallback(
-    (norm: number) => {
-      const v = Math.round(min + norm * (max - min));
-      onValueChangeRef.current(Math.max(min, Math.min(max, v)));
-    },
-    [min, max]
-  );
-
-  const PAD = 12;
-  const pan = Gesture.Pan()
-    .onUpdate((e) => {
-      if (trackWidth.value <= 0) return;
-      const norm = Math.max(0, Math.min(1, (e.x - PAD) / trackWidth.value));
-      rawValue.value = norm;
-      runOnJS(updateValue)(norm);
-    })
-    .onEnd(() => {
-      if (Platform.OS === 'ios') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    });
-
-  const tap = Gesture.Tap()
-    .onEnd((e) => {
-      if (trackWidth.value <= 0) return;
-      const norm = Math.max(0, Math.min(1, (e.x - PAD) / trackWidth.value));
-      rawValue.value = withSpring(norm, SPRING_CONFIG);
-      runOnJS(updateValue)(norm);
-      if (Platform.OS === 'ios') runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
-    });
-
-  const fillStyle = useAnimatedStyle(() => ({
-    width: rawValue.value * trackWidth.value + 12,
-  }));
-
-  const thumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: rawValue.value * trackWidth.value }],
-  }));
-
-  return (
-    <View style={styles.sliderContainer}>
-      <View style={styles.sliderLabelRow}>
-        <Text style={styles.sliderValue}>
-          {value} {unit === 'per_week' ? 'times per week' : 'times per day'}
-        </Text>
-      </View>
-      <GestureDetector gesture={Gesture.Race(pan, tap)}>
-        <View
-          style={styles.sliderTrackWrap}
-          onLayout={(e) => {
-            const w = e.nativeEvent.layout.width - 24;
-            if (w > 0) trackWidth.value = w;
-          }}
-        >
-          <View style={styles.sliderTrack} />
-          <Animated.View style={[styles.sliderFill, fillStyle]} />
-          <Animated.View style={[styles.sliderThumb, thumbStyle]}>
-            <View style={styles.sliderThumbInner} />
-          </Animated.View>
-        </View>
-      </GestureDetector>
-      <View style={styles.sliderMinMax}>
-        <Text style={styles.sliderMinMaxText}>{min}</Text>
-        <Text style={styles.sliderMinMaxText}>{max}</Text>
-      </View>
-    </View>
   );
 }
 
@@ -226,11 +134,18 @@ export function PatternsImpactScreen() {
         ))}
       </View>
 
-      <FrequencySlider
-        unit={state.frequencyUnit}
-        value={quantity}
-        onValueChange={setFrequencyQuantity}
-      />
+      <View style={styles.sliderContainer}>
+        <AppSlider
+          value={quantity}
+          minimumValue={SLIDER_CONFIG[state.frequencyUnit].min}
+          maximumValue={SLIDER_CONFIG[state.frequencyUnit].max}
+          onValueChange={setFrequencyQuantity}
+          step={1}
+          valueFormatter={(v) =>
+            `${v} ${state.frequencyUnit === 'per_week' ? 'times per week' : 'times per day'}`
+          }
+        />
+      </View>
 
       <Text style={styles.sectionTitle}>
         Money spent ({state.frequencyUnit === 'per_week' ? 'per week' : 'per day'})
@@ -347,64 +262,6 @@ const styles = StyleSheet.create({
   },
   sliderContainer: {
     marginBottom: spacing.xl,
-  },
-  sliderLabelRow: {
-    marginBottom: spacing.xs,
-  },
-  sliderValue: {
-    ...typography.titleSmall,
-    color: colors.accent,
-  },
-  sliderTrackWrap: {
-    height: 40,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  sliderTrack: {
-    position: 'absolute',
-    left: 12,
-    right: 12,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.divider,
-  },
-  sliderFill: {
-    position: 'absolute',
-    left: 12,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.accentSoft,
-  },
-  sliderThumb: {
-    position: 'absolute',
-    left: 12,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.backgroundCard,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.shadowMedium,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sliderThumbInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.accent,
-  },
-  sliderMinMax: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.xxs,
-    paddingHorizontal: spacing.xs,
-  },
-  sliderMinMaxText: {
-    ...typography.caption,
-    color: colors.textMuted,
   },
   input: {
     ...typography.body,

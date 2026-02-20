@@ -6,6 +6,8 @@ import { RewardsController } from '../controllers/rewardsController';
 import { CompanionController } from '../controllers/companionController';
 import { PlanController } from '../controllers/planController';
 import { LocationShieldController } from '../controllers/locationShieldController';
+import { ProfileController } from '../controllers/profileController';
+
 const router = Router();
 
 // Health check
@@ -33,6 +35,7 @@ router.post(
 );
 
 router.get('/users/:userId/rewards', RewardsController.getRewards);
+router.get('/users/:userId/profile', ProfileController.getProfile);
 
 router.get('/users/:userId/companion', CompanionController.get);
 router.post('/users/:userId/companion', CompanionController.add);

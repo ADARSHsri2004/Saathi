@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 import type { Badge } from './types';
 import { scale as scaleSize, scaleFont, isSmallScreen } from '../../utils/responsive';
+import { CircularProgressRing } from '../CircularProgressRing';
 
 interface BadgeCardProps {
   badge: Badge;
@@ -52,12 +53,9 @@ export function BadgeCard({ badge, onPress }: BadgeCardProps) {
     ],
   }));
 
-  const progressRingStyle = useAnimatedStyle(() => {
-    const rotation = progress.value * 360;
-    return {
-      transform: [{ rotate: `${rotation}deg` }],
-    };
-  });
+  const progressBarFillStyle = useAnimatedStyle(() => ({
+    width: `${progress.value * 100}%`,
+  }));
 
   const glowStyle = useAnimatedStyle(() => ({
     opacity: glowOpacity.value,
@@ -80,43 +78,36 @@ export function BadgeCard({ badge, onPress }: BadgeCardProps) {
             width: smallScreen ? scaleSize(70) : scaleSize(80),
             height: smallScreen ? scaleSize(70) : scaleSize(80),
           }]}>
-            <View style={[styles.progressRing, {
-              width: smallScreen ? scaleSize(70) : scaleSize(80),
-              height: smallScreen ? scaleSize(70) : scaleSize(80),
-              borderRadius: smallScreen ? scaleSize(35) : scaleSize(40),
-              borderWidth: smallScreen ? 2.5 : 3,
-            }]}>
-              <Animated.View
+            <CircularProgressRing
+              value={badge.progress * 100}
+              maxValue={100}
+              radius={smallScreen ? 32 : 36}
+              duration={1000}
+              showProgressValue={false}
+              activeStrokeColor={colors.accent}
+              inActiveStrokeColor={colors.progressBackground}
+              inActiveStrokeOpacity={0.5}
+              activeStrokeWidth={smallScreen ? 2.5 : 3}
+              inActiveStrokeWidth={smallScreen ? 2.5 : 3}
+            >
+              <View
                 style={[
-                  styles.progressRingFill,
-                  progressRingStyle,
+                  styles.badgeIcon,
+                  !badge.unlocked && styles.badgeIconLocked,
                   {
-                    width: smallScreen ? scaleSize(70) : scaleSize(80),
-                    height: smallScreen ? scaleSize(70) : scaleSize(80),
-                    borderRadius: smallScreen ? scaleSize(35) : scaleSize(40),
-                    borderWidth: smallScreen ? 2.5 : 3,
+                    width: smallScreen ? scaleSize(56) : scaleSize(64),
+                    height: smallScreen ? scaleSize(56) : scaleSize(64),
+                    borderRadius: smallScreen ? scaleSize(28) : scaleSize(32),
                   }
                 ]}
-              />
-            </View>
-
-            <View
-              style={[
-                styles.badgeIcon,
-                !badge.unlocked && styles.badgeIconLocked,
-                {
-                  width: smallScreen ? scaleSize(56) : scaleSize(64),
-                  height: smallScreen ? scaleSize(56) : scaleSize(64),
-                  borderRadius: smallScreen ? scaleSize(28) : scaleSize(32),
-                }
-              ]}
-            >
-              <MaterialCommunityIcons
-                name={badge.icon as any}
-                size={smallScreen ? scaleSize(28) : scaleSize(32)}
-                color={badge.unlocked ? '#FFD700' : colors.textMuted}
-              />
-            </View>
+              >
+                <MaterialCommunityIcons
+                  name={badge.icon as any}
+                  size={smallScreen ? scaleSize(28) : scaleSize(32)}
+                  color={badge.unlocked ? '#FFD700' : colors.textMuted}
+                />
+              </View>
+            </CircularProgressRing>
           </View>
 
           <Text
@@ -141,12 +132,7 @@ export function BadgeCard({ badge, onPress }: BadgeCardProps) {
 
           {!badge.unlocked && (
             <View style={styles.progressBar}>
-              <Animated.View
-                style={[
-                  styles.progressBarFill,
-                  { width: `${progress.value * 100}%` },
-                ]}
-              />
+              <Animated.View style={[styles.progressBarFill, progressBarFillStyle]} />
             </View>
           )}
         </View>
@@ -192,18 +178,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.sm,
-    position: 'relative',
-  },
-  progressRing: {
-    position: 'absolute',
-    borderColor: colors.progressBackground,
-  },
-  progressRingFill: {
-    position: 'absolute',
-    borderColor: 'transparent',
-    borderTopColor: colors.accent,
-    borderRightColor: colors.accent,
-    transform: [{ rotate: '-90deg' }],
   },
   badgeIcon: {
     backgroundColor: colors.accentSoft,
