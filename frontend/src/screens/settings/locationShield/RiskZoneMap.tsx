@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Dimensions, Pressable, Platform } from 'react-native';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, Dimensions, Pressable, Platform, ActivityIndicator, ScrollView, TouchableOpacity, LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -9,14 +10,21 @@ import Animated, {
   withSequence,
   interpolate,
   Easing,
+  runOnJS,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
+import * as Location from 'expo-location';
 import { Feather } from '@expo/vector-icons';
+import { CurrentLocationMap } from './CurrentLocationMap';
 import { ShieldOrb } from './ShieldOrb';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { colors, spacing, typography, borderRadius } from '../../../theme';
+import { LocationShieldApi } from '../../../services/api';
+
+const USER_ID_KEY = 'user_id';
+const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 
 const { width } = Dimensions.get('window');
 const MIN_RADIUS = 50;
@@ -34,20 +42,134 @@ type RiskZoneMapProps = {
   onContinue: (zones: RiskZone[]) => void;
 };
 
+const DEFAULT_REGION = {
+  latitude: 25.241,
+  longitude: 86.985,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
+};
+
 export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
   const insets = useSafeAreaInsets();
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationLoading, setLocationLoading] = useState(true);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [zones, setZones] = useState<RiskZone[]>([]);
+  const [zonesLoading, setZonesLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{ lat: string; lon: string; display_name: string }>>([]);
+  const [searching, setSearching] = useState(false);
+  const [draftCenter, setDraftCenter] = useState<{ latitude: number; longitude: number } | null>(null);
   const [radius, setRadius] = useState(100);
   const radiusShared = useSharedValue(100);
+  const sliderProgress = useSharedValue((100 - MIN_RADIUS) / (MAX_RADIUS - MIN_RADIUS));
+  const trackWidth = useSharedValue(width - spacing.lg * 2);
   const rippleScale = useSharedValue(1);
   const particleOpacity = useSharedValue(0);
   const particleX = useSharedValue(width / 2);
   const particleY = useSharedValue(200);
   const orbIntensity = useSharedValue(0.6);
+  const lastReportedRadius = useRef(100);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setLocationError('Location permission not granted');
+          setLocationLoading(false);
+          return;
+        }
+        const pos = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        if (!cancelled) {
+          const coords = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          };
+          setLocation(coords);
+          setDraftCenter((prev) => prev ?? coords);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setLocationError('Could not get location');
+        }
+      } finally {
+        if (!cancelled) setLocationLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!location) return;
+    setDraftCenter((prev) => prev ?? location);
+  }, [location]);
+
+  const loadZones = useCallback(async () => {
+    const userId = await AsyncStorage.getItem(USER_ID_KEY);
+    if (!userId) {
+      setZonesLoading(false);
+      return;
+    }
+    try {
+      const data = await LocationShieldApi.getZones(userId);
+      setZones(data.map((z) => ({ ...z, id: z.id })));
+    } catch {
+      setZones([]);
+    } finally {
+      setZonesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!locationLoading) {
+      loadZones();
+    }
+  }, [locationLoading, loadZones]);
+
+  const searchPlaces = async () => {
+    const q = searchText.trim();
+    if (!q) return;
+    setSearching(true);
+    setSearchResults([]);
+    try {
+      const res = await fetch(
+        `${NOMINATIM_URL}?format=json&q=${encodeURIComponent(q)}&limit=5`,
+        { headers: { Accept: 'application/json', 'User-Agent': 'Saathi/1.0' } }
+      );
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setSearchResults(data.map((r: any) => ({ lat: r.lat, lon: r.lon, display_name: r.display_name })));
+      }
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const selectSearchResult = (lat: string, lon: string) => {
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lon);
+    if (!Number.isNaN(latitude) && !Number.isNaN(longitude)) {
+      setDraftCenter({ latitude, longitude });
+      setSearchResults([]);
+      setSearchText('');
+    }
+  };
+
+  const handleMapPress = useCallback((coords: { latitude: number; longitude: number }) => {
+    setDraftCenter(coords);
+  }, []);
 
   useEffect(() => {
     radiusShared.value = radius;
+    const p = (radius - MIN_RADIUS) / (MAX_RADIUS - MIN_RADIUS);
+    sliderProgress.value = withTiming(p, { duration: 150 });
+    lastReportedRadius.current = radius;
     rippleScale.value = withRepeat(
       withSequence(
         withTiming(1.2, { duration: 2000, easing: Easing.out(Easing.ease) }),
@@ -58,38 +180,78 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
     );
   }, [radius]);
 
-  const handleSliderChange = (value: number) => {
-    const newRadius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, value));
+  const handleSliderChange = useCallback((value: number) => {
+    const newRadius = Math.round(Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, value)));
+    if (newRadius === lastReportedRadius.current) return;
+    lastReportedRadius.current = newRadius;
     setRadius(newRadius);
     if (Platform.OS === 'ios') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-  };
+  }, []);
+
+  const onSliderLayout = useCallback((e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0) trackWidth.value = w;
+  }, []);
 
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
-      const progress = Math.max(0, Math.min(1, (e.x - spacing.lg) / (width - spacing.lg * 2)));
-      const newRadius = MIN_RADIUS + progress * (MAX_RADIUS - MIN_RADIUS);
-      handleSliderChange(newRadius);
+      'worklet';
+      const w = trackWidth.value;
+      if (w <= 0) return;
+      const x = Math.max(0, Math.min(w, e.x));
+      const p = x / w;
+      sliderProgress.value = p;
+      const r = Math.round(MIN_RADIUS + p * (MAX_RADIUS - MIN_RADIUS));
+      if (r !== lastReportedRadius.current) {
+        runOnJS(handleSliderChange)(r);
+      }
     })
     .onEnd(() => {
-      radiusShared.value = withTiming(radius);
+      'worklet';
+      const p = sliderProgress.value;
+      const r = Math.round(MIN_RADIUS + p * (MAX_RADIUS - MIN_RADIUS));
+      sliderProgress.value = withTiming((r - MIN_RADIUS) / (MAX_RADIUS - MIN_RADIUS), { duration: 100 });
+      runOnJS(handleSliderChange)(r);
     });
 
-  const handleSaveZone = () => {
+  const tapGesture = Gesture.Tap()
+    .onEnd((e) => {
+      'worklet';
+      const w = trackWidth.value;
+      if (w <= 0) return;
+      const x = Math.max(0, Math.min(w, e.x));
+      const p = x / w;
+      sliderProgress.value = withTiming(p, { duration: 150 });
+      const r = Math.round(MIN_RADIUS + p * (MAX_RADIUS - MIN_RADIUS));
+      runOnJS(handleSliderChange)(r);
+    });
+
+  const sliderComposed = Gesture.Race(panGesture, tapGesture);
+
+  const sliderFillStyle = useAnimatedStyle(() => ({
+    width: `${sliderProgress.value * 100}%`,
+  }));
+
+  const sliderThumbStyle = useAnimatedStyle(() => ({
+    left: `${sliderProgress.value * 100}%`,
+  }));
+
+  const handleSaveZone = async () => {
     if (Platform.OS === 'ios') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-
+    const center = draftCenter ?? location ?? { latitude: DEFAULT_REGION.latitude, longitude: DEFAULT_REGION.longitude };
     const newZone: RiskZone = {
       id: Date.now().toString(),
-      latitude: 0, // In real app, get from map
-      longitude: 0,
+      latitude: center.latitude,
+      longitude: center.longitude,
       radius,
-      name: searchText || 'Risk Zone',
+      name: searchText.trim() || 'Risk Zone',
     };
+    const updatedZones = [...zones, newZone];
 
-    // Animate particle flying to orb
     particleOpacity.value = 1;
     particleX.value = withTiming(width / 2, { duration: 800 });
     particleY.value = withTiming(100, { duration: 800 }, () => {
@@ -100,15 +262,36 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
       );
     });
 
-    setZones([...zones, newZone]);
+    setZones(updatedZones);
     setSearchText('');
     setRadius(100);
+
+    const userId = await AsyncStorage.getItem(USER_ID_KEY);
+    if (userId) {
+      try {
+        const saved = await LocationShieldApi.saveZones(
+          userId,
+          updatedZones.map((z) => ({ latitude: z.latitude, longitude: z.longitude, radius: z.radius, name: z.name }))
+        );
+        setZones(saved.map((z) => ({ ...z, id: z.id })));
+      } catch {
+        setZones(updatedZones);
+      }
+    }
   };
 
-  const handleContinue = () => {
-    if (zones.length === 0) {
-      // Show gentle message
-      return;
+  const handleContinue = async () => {
+    if (zones.length === 0) return;
+    const userId = await AsyncStorage.getItem(USER_ID_KEY);
+    if (userId) {
+      try {
+        await LocationShieldApi.saveZones(
+          userId,
+          zones.map((z) => ({ latitude: z.latitude, longitude: z.longitude, radius: z.radius, name: z.name }))
+        );
+      } catch {
+        //
+      }
     }
     onContinue(zones);
   };
@@ -154,74 +337,65 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
               placeholder="Search for a place..."
               placeholderTextColor={colors.textMuted}
               value={searchText}
-              onChangeText={setSearchText}
+              onChangeText={(t) => { setSearchText(t); setSearchResults([]); }}
+              onSubmitEditing={searchPlaces}
+              returnKeyType="search"
             />
+            <Pressable onPress={searchPlaces} style={styles.searchButton} disabled={searching || !searchText.trim()}>
+              {searching ? (
+                <ActivityIndicator size="small" color={colors.accent} />
+              ) : (
+                <Feather name="arrow-right" size={20} color={colors.accent} />
+              )}
+            </Pressable>
           </View>
-        </View>
-
-        {/* Map area with pulsing marker */}
-        <View style={styles.mapContainer}>
-          <View style={styles.mapPlaceholder}>
-            {/* Center marker */}
-            <View style={styles.centerMarker}>
-              <View style={styles.markerDot} />
+          {searchResults.length > 0 && (
+            <View style={styles.searchResults}>
+              <ScrollView keyboardShouldPersistTaps="handled" style={styles.searchResultsScroll}>
+                {searchResults.map((r, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.searchResultItem}
+                    onPress={() => selectSearchResult(r.lat, r.lon)}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="map-pin" size={16} color={colors.textMuted} />
+                    <Text style={styles.searchResultText} numberOfLines={2}>{r.display_name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
-
-            {/* Radius circle */}
-            <Animated.View style={[styles.radiusCircle, radiusStyle]}>
-              <View style={styles.radiusCircleInner} />
-            </Animated.View>
-
-            {/* Energy wave */}
-            <Animated.View style={[styles.energyWave, radiusStyle]}>
-              <LinearGradient
-                colors={['rgba(45, 156, 219, 0.3)', 'transparent']}
-                style={StyleSheet.absoluteFill}
-              />
-            </Animated.View>
-
-            {/* Saved zones */}
-            {zones.map((zone) => (
-              <View
-                key={zone.id}
-                style={[
-                  styles.savedZone,
-                  {
-                    width: (zone.radius / MAX_RADIUS) * 200,
-                    height: (zone.radius / MAX_RADIUS) * 200,
-                  },
-                ]}
-              />
-            ))}
-          </View>
+          )}
         </View>
 
-        {/* Radius slider */}
+        <View style={styles.mapContainer}>
+          {locationLoading ? (
+            <View style={styles.mapPlaceholder}>
+              <ActivityIndicator size="large" color={colors.accent} />
+              <Text style={styles.mapLoadingText}>Getting your location...</Text>
+            </View>
+          ) : locationError && !location ? (
+            <View style={styles.mapPlaceholder}>
+              <Feather name="map-pin" size={48} color={colors.textMuted} />
+              <Text style={styles.mapLoadingText}>{locationError}</Text>
+            </View>
+          ) : (
+            <CurrentLocationMap
+              location={location}
+              zones={zones}
+              draftCenter={draftCenter}
+              draftRadius={radius}
+              onMapPress={handleMapPress}
+            />
+          )}
+        </View>
+
         <View style={styles.sliderContainer}>
           <Text style={styles.sliderLabel}>Alert Radius</Text>
-          <GestureDetector gesture={panGesture}>
-            <Animated.View style={styles.sliderTrack}>
-              <Animated.View
-                style={[
-                  styles.sliderFill,
-                  {
-                    width: `${((radius - MIN_RADIUS) / (MAX_RADIUS - MIN_RADIUS)) * 100}%`,
-                  },
-                ]}
-              />
-              <Pressable
-                style={[
-                  styles.sliderThumb,
-                  {
-                    left: `${((radius - MIN_RADIUS) / (MAX_RADIUS - MIN_RADIUS)) * 100}%`,
-                  },
-                ]}
-                onPressIn={() => {
-                  if (Platform.OS === 'ios') {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }
-                }}
-              />
+          <GestureDetector gesture={sliderComposed}>
+            <Animated.View style={styles.sliderTrack} onLayout={onSliderLayout}>
+              <Animated.View style={[styles.sliderFill, sliderFillStyle]} />
+              <Animated.View style={[styles.sliderThumb, sliderThumbStyle]} />
             </Animated.View>
           </GestureDetector>
           <Text style={styles.radiusValue}>{radius}m</Text>
@@ -304,6 +478,34 @@ const styles = StyleSheet.create({
     color: colors.textOnAccent,
     paddingVertical: spacing.xs,
   },
+  searchButton: {
+    padding: spacing.xs,
+  },
+  searchResults: {
+    marginTop: spacing.xs,
+    maxHeight: 160,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+  },
+  searchResultsScroll: {
+    maxHeight: 160,
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  searchResultText: {
+    flex: 1,
+    ...typography.body,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
+  },
   mapContainer: {
     flex: 1,
     marginVertical: spacing.lg,
@@ -316,6 +518,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(26, 58, 92, 0.5)',
+    gap: spacing.md,
+  },
+  mapLoadingText: {
+    ...typography.body,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   centerMarker: {
     position: 'absolute',

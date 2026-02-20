@@ -22,6 +22,20 @@ model User {
   chats             Chat[]
   recoveryCompanion RecoveryCompanion?
   recoveryPlan      RecoveryPlan?
+  riskZones         RiskZone[]
+}
+
+model RiskZone {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  latitude  Float
+  longitude Float
+  radius    Int
+  name      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model RecoveryCompanion {

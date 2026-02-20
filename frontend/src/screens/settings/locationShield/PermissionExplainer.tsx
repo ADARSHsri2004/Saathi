@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import { ShieldOrb } from './ShieldOrb';
 import { PrimaryButton } from '../../../components/PrimaryButton';
@@ -22,6 +23,7 @@ type PermissionExplainerProps = {
 
 export function PermissionExplainer({ onAllow, onDenied }: PermissionExplainerProps) {
   const insets = useSafeAreaInsets();
+  const [requesting, setRequesting] = useState(false);
   const orbOpacity = useSharedValue(0);
   const orbScale = useSharedValue(0.8);
   const titleOpacity = useSharedValue(0);
@@ -79,18 +81,23 @@ export function PermissionExplainer({ onAllow, onDenied }: PermissionExplainerPr
     if (Platform.OS === 'ios') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-
-    // In a real app, you would request location permission here
-    // For now, we'll simulate it
+    setRequesting(true);
     try {
-      // const { status } = await Location.requestForegroundPermissionsAsync();
-      // if (status === 'granted') {
-      onAllow();
-      // } else {
-      //   onDenied?.();
-      // }
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        onAllow();
+      } else {
+        onDenied?.();
+        Alert.alert(
+          'Location needed',
+          'Location Shield needs access to your location to show you on the map and alert you near risk zones. You can enable it in Settings.',
+          [{ text: 'OK' }]
+        );
+      }
     } catch (error) {
       onDenied?.();
+    } finally {
+      setRequesting(false);
     }
   };
 
@@ -131,7 +138,9 @@ export function PermissionExplainer({ onAllow, onDenied }: PermissionExplainerPr
           <PrimaryButton
             label="Allow Protection"
             onPress={handleAllowPress}
-            showArrow={true}
+            showArrow={!requesting}
+            disabled={requesting}
+            loading={requesting}
           />
         </Animated.View>
       </View>
