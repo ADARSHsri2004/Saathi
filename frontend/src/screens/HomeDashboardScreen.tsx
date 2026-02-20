@@ -11,7 +11,6 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -46,10 +45,6 @@ export function HomeDashboardScreen() {
   const [currentTips, setCurrentTips] = useState(() => getRandomTips(3));
   const [relapseModalVisible, setRelapseModalVisible] = useState(false);
   const [isSubmittingRelapse, setIsSubmittingRelapse] = useState(false);
-  const [professionModalVisible, setProfessionModalVisible] = useState(false);
-  const [loadingLocation, setLoadingLocation] = useState(false);
-  const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([]);
-  
   const relapseOpacity = useSharedValue(0);
   const relapseScale = useSharedValue(0.9);
 
@@ -101,64 +96,8 @@ export function HomeDashboardScreen() {
     setTimeout(() => setRelapseModalVisible(false), 200);
   };
 
-  const hardcodedPlaces = [
-    { id: 'p1', name: 'Sadar Hospital', place: 'Bhagalpur', lat: 25.2415, lon: 86.9850, phone: '+91 612 1234567', address: 'Near Bus Stand, Bhagalpur' },
-    { id: 'p2', name: 'Mahila Hospital', place: 'Bhagalpur', lat: 25.2380, lon: 86.9900, phone: '+91 612 2345678', address: 'Station Road, Bhagalpur' },
-    { id: 'p3', name: 'City Clinic', place: 'Bhagalpur', lat: 25.2440, lon: 86.9800, phone: '+91 612 3456789', address: 'MG Road, Bhagalpur' },
-    { id: 'p4', name: 'Dr. Verma - General Physician', place: 'Bhagalpur', lat: 25.2430, lon: 86.9890, phone: '+91 98765 43210', address: 'Near Gandhi Park' },
-    { id: 'p5', name: 'Shankar Nursing Home', place: 'Bhagalpur', lat: 25.2395, lon: 86.9835, phone: '+91 612 9988776', address: 'Hill View Colony' },
-    { id: 'p6', name: 'RK Hospital', place: 'Bhagalpur', lat: 25.2455, lon: 86.9885, phone: '+91 612 5566778', address: 'Bihar Hospital Road' },
-    { id: 'p7', name: 'Apollo Clinic - Bhagalpur', place: 'Bhagalpur', lat: 25.2375, lon: 86.9815, phone: '+91 612 6677889', address: 'College Road' },
-    { id: 'p8', name: 'Sunrise Hospital', place: 'Bhagalpur', lat: 25.2460, lon: 86.9825, phone: '+91 612 7766554', address: 'Sapna More' },
-    { id: 'p9', name: 'Ashok Medical Centre', place: 'Bhagalpur', lat: 25.2400, lon: 86.9870, phone: '+91 612 8877665', address: 'Kalyan Chowk' },
-    { id: 'p10', name: 'Neelam Diagnostics', place: 'Bhagalpur', lat: 25.2425, lon: 86.9860, phone: '+91 612 4455667', address: 'Near Sadaqat Ashram' },
-    { id: 'p11', name: 'Primary Health Centre', place: 'Bhagalpur', lat: 25.2365, lon: 86.9840, phone: '+91 612 3344556', address: 'Village Road' },
-    { id: 'p12', name: 'Greenleaf Clinic', place: 'Bhagalpur', lat: 25.2470, lon: 86.9905, phone: '+91 612 2233445', address: 'Green Park' },
-  ];
-
-  const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const toRad = (x: number) => (x * Math.PI) / 180;
-    const R = 6371; // km
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  const fetchNearbyPlaces = async () => {
-    setLoadingLocation(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      let userLoc = null;
-      if (status === 'granted') {
-        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
-        userLoc = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-      }
-      if (!userLoc) {
-        // fallback to Bhagalpur center
-        userLoc = { lat: 25.2410, lon: 86.9849 };
-      }
-
-      const withDistance = hardcodedPlaces.map((p) => ({
-        ...p,
-        distanceKm: Number(haversineDistance(userLoc.lat, userLoc.lon, p.lat, p.lon).toFixed(2)),
-      }));
-      withDistance.sort((a, b) => a.distanceKm - b.distanceKm);
-      setNearbyPlaces(withDistance);
-    } catch (error) {
-      // fallback
-      setNearbyPlaces(hardcodedPlaces.map((p) => ({ ...p, distanceKm: undefined })));
-    } finally {
-      setLoadingLocation(false);
-    }
-  };
-
   const handleProfessionPress = () => {
-    setProfessionModalVisible(true);
-    fetchNearbyPlaces();
+    navigation.navigate('Profession');
   };
 
   const handleConfirmRelapse = async () => {
@@ -557,50 +496,6 @@ export function HomeDashboardScreen() {
               onPress={() => setTipsModalVisible(false)}
               activeOpacity={0.8}
             >
-              <Text style={styles.modalCloseText}>Close</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Profession / Nearby Places Modal */}
-      <Modal
-        visible={professionModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setProfessionModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setProfessionModalVisible(false)}
-        >
-          <Pressable style={[styles.modalContent, styles.professionModalContent]} onPress={(e) => e.stopPropagation()}>
-            <Text style={[styles.modalTitle, styles.professionHeader]}>Nearby doctors & hospitals</Text>
-            {loadingLocation ? (
-              <View style={{ paddingVertical: spacing.lg, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color={colors.accent} />
-                <Text style={[styles.motivationalText, { marginTop: spacing.md }]}>Finding nearby options...</Text>
-              </View>
-            ) : nearbyPlaces.length === 0 ? (
-              <Text style={styles.professionEmpty}>No nearby places found.</Text>
-            ) : (
-              <ScrollView style={{ maxHeight: 320 }}>
-                  {nearbyPlaces.map((p) => (
-                    <View key={p.id} style={styles.placeCard}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.placeName}>{p.name}</Text>
-                        <Text style={styles.placePlace}>{p.place} • {p.address}</Text>
-                        <Text style={styles.placePhone}>{p.phone}</Text>
-                      </View>
-                      <View style={{ marginLeft: spacing.md, alignItems: 'flex-end' }}>
-                        <Text style={styles.placeDistance}>{p.distanceKm !== undefined ? `${p.distanceKm} km` : '—'}</Text>
-                      </View>
-                    </View>
-                  ))}
-              </ScrollView>
-            )}
-            <TouchableOpacity style={[styles.modalCloseButton, { marginTop: spacing.md }]} onPress={() => setProfessionModalVisible(false)}>
               <Text style={styles.modalCloseText}>Close</Text>
             </TouchableOpacity>
           </Pressable>
@@ -1130,44 +1025,4 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontWeight: '600',
   },
-  professionModalContent: {
-    maxWidth: 420,
-  },
-  professionHeader: {
-    marginBottom: spacing.md,
-    fontSize: 16,
-  },
-  placeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-  },
-  placeName: {
-    ...typography.bodyMedium,
-    color: colors.textPrimary,
-  },
-  placePlace: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  placePhone: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-    fontWeight: '600',
-  },
-  placeDistance: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  professionEmpty: {
-    ...typography.bodySmall,
-    color: colors.textMuted,
-    textAlign: 'center',
-    paddingVertical: spacing.md,
-  },
-});
+ });

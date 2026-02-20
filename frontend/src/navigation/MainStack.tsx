@@ -12,6 +12,8 @@ import { FocusRecallGameWrapper } from './FocusRecallGameWrapper';
 import { LocationShieldStack } from './LocationShieldStack';
 import { PlannerStack } from './PlannerStack';
 import { LocationShieldMonitorRunner } from '../components/LocationShieldMonitorRunner';
+import { DoctorInfoScreen } from '@/screens/DoctorInfoScreen';
+import { ProfessionScreen } from '@/screens/ProfessionScreen';
 import { colors } from '../theme';
 import { useOnboarding } from '../context/OnboardingContext';
 
@@ -27,6 +29,8 @@ export type MainStackParamList = {
   LocationShieldStack: undefined;
   FocusRecallGame: undefined;
   PlannerStack: undefined;
+  DoctorInfo: undefined;
+  Profession: undefined;
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -56,6 +60,8 @@ export function MainStack() {
       <Stack.Screen name="LocationShieldStack" component={LocationShieldStack} />
       <Stack.Screen name="FocusRecallGame" component={FocusRecallGameWrapper} />
       <Stack.Screen name="PlannerStack" component={PlannerStack} />
+      <Stack.Screen name="DoctorInfo" component={DoctorInfoScreen} />
+      <Stack.Screen name="Profession" component={ProfessionScreen} />
     </Stack.Navigator>
     </>
   );

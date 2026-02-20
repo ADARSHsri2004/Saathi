@@ -65,6 +65,16 @@ export function SettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>For doctors</Text>
+          <SettingsRow
+            icon={<MaterialCommunityIcons name="doctor" size={24} color={colors.accent} />}
+            label="Doctor info"
+            subtitle="Name, degree, documents, age"
+            rightElement={<Feather name="chevron-right" size={20} color={colors.textMuted} />}
+            onPress={() => navigation.navigate('DoctorInfo')}
+          />
+        </View>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Protection</Text>
           <SettingsRow
             icon={<MaterialCommunityIcons name="shield-check" size={24} color={colors.accent} />}
