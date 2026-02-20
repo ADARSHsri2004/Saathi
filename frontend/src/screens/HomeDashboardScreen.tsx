@@ -282,6 +282,7 @@ export function HomeDashboardScreen() {
           title="Welcome back"
           elevated={headerElevated}
           onMenuPress={() => {}}
+          onProfilePress={() => navigation.navigate('Profile')}
           onNotificationsPress={() => {}}
           onHelpPress={() => {}}
           onSettingsPress={() => navigation.navigate('Settings')}

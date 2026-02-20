@@ -183,6 +183,7 @@ export function CompanionScreen() {
           title="Companion"
           elevated={false}
           onMenuPress={() => {}}
+          onProfilePress={() => navigation.navigate('Profile')}
           onNotificationsPress={() => {}}
           onHelpPress={() => {}}
           onCompanionPress={() => {}}

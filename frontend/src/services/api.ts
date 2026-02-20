@@ -395,6 +395,37 @@ export class RewardsApi {
   }
 }
 
+export interface ProfileResponse {
+  displayName: string;
+  username: string;
+  streakDays: number;
+  totalCleanDays: number;
+  relapseCount: number;
+  riskScore: number;
+  xpPoints: number;
+  level: number;
+  xpToNextLevel: number;
+  achievements: Array<{ id: string; title: string; unlocked: boolean }>;
+  moodStats: { calm: number; anxious: number; motivated: number; low: number };
+}
+
+export class ProfileApi {
+  static async getProfile(userId: string) {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/profile`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data: ApiResponse<ProfileResponse> = await response.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to fetch profile');
+    }
+    return data.data!;
+  }
+}
+
 export type AssistantRiskLevel = 'calm' | 'high_risk' | 'achievement';
 export type GreetingHint = 'default' | 'proactive' | 'congratulatory';
 
