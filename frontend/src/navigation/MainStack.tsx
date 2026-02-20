@@ -11,6 +11,7 @@ import { AddCompanionScreen } from '@/screens/AddCompanionScreen';
 import { FocusRecallGameWrapper } from './FocusRecallGameWrapper';
 import { LocationShieldStack } from './LocationShieldStack';
 import { PlannerStack } from './PlannerStack';
+import { LocationShieldMonitorRunner } from '../components/LocationShieldMonitorRunner';
 import { colors } from '../theme';
 import { useOnboarding } from '../context/OnboardingContext';
 
@@ -35,7 +36,9 @@ export function MainStack() {
   const isCompanion = state.role === 'companion';
 
   return (
-    <Stack.Navigator
+    <>
+      <LocationShieldMonitorRunner />
+      <Stack.Navigator
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: colors.background },
@@ -54,5 +57,6 @@ export function MainStack() {
       <Stack.Screen name="FocusRecallGame" component={FocusRecallGameWrapper} />
       <Stack.Screen name="PlannerStack" component={PlannerStack} />
     </Stack.Navigator>
+    </>
   );
 }

@@ -4,6 +4,8 @@ import { DashboardController } from '../controllers/dashboardController';
 import { ChatController } from "../controllers/chatController";
 import { RewardsController } from '../controllers/rewardsController';
 import { CompanionController } from '../controllers/companionController';
+import { PlanController } from '../controllers/planController';
+import { LocationShieldController } from '../controllers/locationShieldController';
 const router = Router();
 
 // Health check
@@ -36,5 +38,15 @@ router.get('/users/:userId/companion', CompanionController.get);
 router.post('/users/:userId/companion', CompanionController.add);
 router.delete('/users/:userId/companion', CompanionController.remove);
 router.get('/companion/patient/:patientId/dashboard', CompanionController.getPatientDashboard);
+
+// Recovery Plan routes
+router.post('/users/:userId/plan/generate', PlanController.generatePlan);
+router.get('/users/:userId/plan', PlanController.getPlan);
+router.post('/users/:userId/plan/update', PlanController.updatePlan);
+router.post('/users/:userId/plan/advance-day', PlanController.advanceDay);
+
+// Location Shield routes
+router.get('/users/:userId/location-shield/zones', LocationShieldController.getZones);
+router.put('/users/:userId/location-shield/zones', LocationShieldController.saveZones);
 
 export default router;

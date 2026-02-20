@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -22,6 +23,21 @@ model User {
   chatMemory        ChatMemory?
   chats             Chat[]
   recoveryCompanion RecoveryCompanion?
+  recoveryPlan      RecoveryPlan?
+  riskZones         RiskZone[]
+}
+
+model RiskZone {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  latitude  Float
+  longitude Float
+  radius    Int
+  name      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model RecoveryCompanion {
@@ -95,4 +111,39 @@ model Chat {
   reply     String
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
+}
+
+model RecoveryPlan {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Input data used to generate the plan
+  addictionType           String   // e.g., "cigarette"
+  dailyConsumption        Int      // e.g., 18
+  yearsOfAddiction        Float    // e.g., 7.0
+  ftndScore               Int?     // Fagerstrom score
+  dependenceLevel         String?  // "low", "moderate", "high"
+  triggers                String[] // Array of trigger strings
+  
+  // Generated plan output
+  planSummary             String   // AI-generated explanation
+  addictionSeverity       String   // "Low", "Moderate", "High"
+  relapseRisk             String   // "Low", "Medium", "High"
+  futureDailyLimits       Int[]    // Array of daily limits [18,18,17,17,...]
+  recoveryDurationDays    Int      // Total days in plan
+  
+  // AI Recommendations (stored as JSON text)
+  nicotineReplacement     Boolean?
+  behavioralTips          String[] // Array of tips
+  triggerStrategies       String[] // Array of strategies
+  exerciseTips            String[] // Array of exercise tips
+  
+  // Tracking
+  currentDayIndex         Int      @default(0) // Current day in the plan (0-based)
+  startedAt               DateTime @default(now())
+  lastUpdatedAt           DateTime @updatedAt
+  createdAt               DateTime @default(now())
+  
+  @@index([userId])
 }
