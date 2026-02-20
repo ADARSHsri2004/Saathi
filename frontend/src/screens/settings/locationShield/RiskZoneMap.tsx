@@ -22,12 +22,11 @@ import { ShieldOrb } from './ShieldOrb';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { colors, spacing, typography, borderRadius } from '../../../theme';
 import { LocationShieldApi } from '../../../services/api';
-import { startLocationShieldMonitor, notifyIfInsideZonesNow } from '../../../services/locationShieldMonitor';
 
 const USER_ID_KEY = 'user_id';
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 
-const MIN_RADIUS = 5;
+const MIN_RADIUS = 50;
 const MAX_RADIUS = 500;
 
 type RiskZone = {
@@ -102,30 +101,6 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    let subscription: Location.LocationSubscription | null = null;
-    (async () => {
-      const { status } = await Location.getForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      subscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 2000,
-          distanceInterval: 3,
-        },
-        (pos) => {
-          setLocation({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          });
-        }
-      );
-    })();
-    return () => {
-      subscription?.remove();
-    };
   }, []);
 
   useEffect(() => {
@@ -298,36 +273,12 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
           userId,
           updatedZones.map((z) => ({ latitude: z.latitude, longitude: z.longitude, radius: z.radius, name: z.name }))
         );
-        const savedZones = saved.map((z) => ({ ...z, id: z.id }));
-        setZones(savedZones);
-        startLocationShieldMonitor();
-        if (location) {
-          notifyIfInsideZonesNow(location.latitude, location.longitude, savedZones);
-        }
+        setZones(saved.map((z) => ({ ...z, id: z.id })));
       } catch {
         setZones(updatedZones);
       }
     }
   };
-
-  const handleDeleteZone = useCallback(async (zoneId: string) => {
-    if (Platform.OS === 'ios') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    const updatedZones = zones.filter((z) => z.id !== zoneId);
-    setZones(updatedZones);
-    const userId = await AsyncStorage.getItem(USER_ID_KEY);
-    if (!userId) return;
-    try {
-      await LocationShieldApi.saveZones(
-        userId,
-        updatedZones.map((z) => ({ latitude: z.latitude, longitude: z.longitude, radius: z.radius, name: z.name }))
-      );
-      startLocationShieldMonitor();
-    } catch {
-      setZones(zones);
-    }
-  }, [zones]);
 
   const handleContinue = async () => {
     if (zones.length === 0) return;
@@ -338,7 +289,6 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
           userId,
           zones.map((z) => ({ latitude: z.latitude, longitude: z.longitude, radius: z.radius, name: z.name }))
         );
-        startLocationShieldMonitor();
       } catch {
         //
       }
@@ -443,27 +393,6 @@ export function RiskZoneMap({ onContinue }: RiskZoneMapProps) {
               />
             )}
           </View>
-
-          {zones.length > 0 && (
-            <View style={styles.zonesListContainer}>
-              <Text style={styles.zonesListTitle}>Your risk zones</Text>
-              {zones.map((zone, index) => (
-                <View key={zone.id} style={[styles.zoneRow, index === zones.length - 1 && styles.zoneRowLast]}>
-                  <View style={styles.zoneRowText}>
-                    <Text style={styles.zoneName} numberOfLines={1}>{zone.name}</Text>
-                    <Text style={styles.zoneMeta}>{zone.radius}m radius</Text>
-                  </View>
-                  <Pressable
-                    onPress={() => handleDeleteZone(zone.id)}
-                    style={({ pressed }) => [styles.zoneDeleteBtn, pressed && styles.zoneDeleteBtnPressed]}
-                    hitSlop={8}
-                  >
-                    <Feather name="trash-2" size={20} color="#E53935" />
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-          )}
 
           <View style={styles.sliderContainer}>
             <Text style={styles.sliderLabel}>Alert Radius</Text>
@@ -648,50 +577,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(82, 183, 136, 0.6)',
     backgroundColor: 'rgba(82, 183, 136, 0.1)',
-  },
-  zonesListContainer: {
-    marginBottom: spacing.lg,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  zonesListTitle: {
-    ...typography.label,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: spacing.sm,
-  },
-  zoneRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  zoneRowText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  zoneName: {
-    ...typography.body,
-    color: colors.textOnAccent,
-    fontSize: 15,
-  },
-  zoneMeta: {
-    ...typography.caption,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginTop: 2,
-  },
-  zoneDeleteBtn: {
-    padding: spacing.sm,
-    marginLeft: spacing.xs,
-  },
-  zoneDeleteBtnPressed: {
-    opacity: 0.7,
-  },
-  zoneRowLast: {
-    borderBottomWidth: 0,
   },
   sliderContainer: {
     marginBottom: spacing.lg,

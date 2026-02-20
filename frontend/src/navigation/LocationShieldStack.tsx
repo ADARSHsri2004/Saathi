@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { CommonActions } from '@react-navigation/native';
 import { colors } from '../theme';
 import { LocationShieldIntro } from '../screens/settings/locationShield/LocationShieldIntro';
 import { PermissionExplainer } from '../screens/settings/locationShield/PermissionExplainer';
@@ -53,16 +52,7 @@ export function LocationShieldStack() {
       </Stack.Screen>
       <Stack.Screen name="AllSet">
         {({ navigation }) => (
-          <LocationShieldAllSet
-            onContinue={() => {
-              const parent = navigation.getParent();
-              if (parent) {
-                parent.dispatch(CommonActions.navigate({ name: 'Settings' }));
-              } else {
-                navigation.getParent()?.goBack();
-              }
-            }}
-          />
+          <LocationShieldAllSet onContinue={() => navigation.getParent()?.goBack()} />
         )}
       </Stack.Screen>
     </Stack.Navigator>

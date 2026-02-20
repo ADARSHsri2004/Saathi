@@ -1,14 +1,12 @@
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LocationShieldApi, type RiskZoneItem } from './api';
 
 const USER_ID_KEY = 'user_id';
-const LOCATION_SHIELD_ZONES_CACHE = 'location_shield_zones_cache';
 const NOTIFIED_COOLDOWN_MS = 30 * 60 * 1000;
-const DISTANCE_ACCURACY_M = 5;
-const LOCATION_TASK_NAME = 'LOCATION_SHIELD_BACKGROUND_TASK';
+const LOCATION_UPDATE_INTERVAL_MS = 10000;
+const DISTANCE_ACCURACY_M = 50;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -47,6 +45,8 @@ function isInsideZone(
 }
 
 let lastNotified: Record<string, number> = {};
+let watchSubscription: Location.LocationSubscription | null = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 async function checkZonesAndNotify(
   lat: number,
@@ -76,57 +76,32 @@ async function checkZonesAndNotify(
   }
 }
 
-export async function notifyIfInsideZonesNow(
-  lat: number,
-  lon: number,
-  zones: RiskZoneItem[]
-): Promise<void> {
-  const now = Date.now();
-  for (const zone of zones) {
-    if (!isInsideZone(lat, lon, zone)) continue;
-    lastNotified[zone.id] = now;
+async function startPolling(zones: RiskZoneItem[]) {
+  if (pollTimer) return;
+  pollTimer = setInterval(async () => {
     try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "You're near a risk zone",
-          body: zone.name
-            ? `Near ${zone.name}. Remember your strength.`
-            : "You're near a place you marked as risky.",
-          data: { zoneId: zone.id },
-        },
-        trigger: { seconds: 1 },
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const pos = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
       });
+      await checkZonesAndNotify(
+        pos.coords.latitude,
+        pos.coords.longitude,
+        zones
+      );
     } catch {
       //
     }
-  }
+  }, LOCATION_UPDATE_INTERVAL_MS);
 }
 
-TaskManager.defineTask(
-  LOCATION_TASK_NAME,
-  async ({ data, error }: { data: { locations: Location.LocationObject[] }; error: Error | null }) => {
-    if (error) return;
-    const locations = data?.locations;
-    if (!locations?.length) return;
-    let zonesJson: string | null = null;
-    try {
-      zonesJson = await AsyncStorage.getItem(LOCATION_SHIELD_ZONES_CACHE);
-    } catch {
-      return;
-    }
-    if (!zonesJson) return;
-    let zones: RiskZoneItem[];
-    try {
-      zones = JSON.parse(zonesJson);
-    } catch {
-      return;
-    }
-    if (!Array.isArray(zones) || zones.length === 0) return;
-    const loc = locations[locations.length - 1];
-    const { latitude, longitude } = loc.coords;
-    await checkZonesAndNotify(latitude, longitude, zones);
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
   }
-);
+}
 
 export async function startLocationShieldMonitor() {
   try {
@@ -134,39 +109,38 @@ export async function startLocationShieldMonitor() {
     if (!userId) return;
     const zones = await LocationShieldApi.getZones(userId);
     if (zones.length === 0) return;
+    const { status } = await Location.getForegroundPermissionsAsync();
+    if (status !== 'granted') return;
 
-    const { status: foregroundStatus } = await Location.getForegroundPermissionsAsync();
-    if (foregroundStatus !== 'granted') return;
-
-    try {
-      await AsyncStorage.setItem(LOCATION_SHIELD_ZONES_CACHE, JSON.stringify(zones));
-    } catch {
-      //
+    if (watchSubscription) {
+      watchSubscription.remove();
+      watchSubscription = null;
     }
+    stopPolling();
 
-    const { status: backgroundStatus } = await Location.getBackgroundPermissionsAsync();
-    if (backgroundStatus !== 'granted') {
-      await Location.requestBackgroundPermissionsAsync();
-    }
-
-    await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-      accuracy: Location.Accuracy.BestForNavigation,
-      timeInterval: 5000,
-      distanceInterval: 5,
-      showsBackgroundLocationIndicator: true,
-    });
+    watchSubscription = await Location.watchPositionAsync(
+      {
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: LOCATION_UPDATE_INTERVAL_MS,
+        distanceInterval: DISTANCE_ACCURACY_M,
+      },
+      (loc) => {
+        checkZonesAndNotify(
+          loc.coords.latitude,
+          loc.coords.longitude,
+          zones
+        );
+      }
+    );
   } catch {
-    //
+    stopPolling();
   }
 }
 
-export async function stopLocationShieldMonitor() {
-  try {
-    const running = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
-    if (running) {
-      await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
-    }
-  } catch {
-    //
+export function stopLocationShieldMonitor() {
+  if (watchSubscription) {
+    watchSubscription.remove();
+    watchSubscription = null;
   }
+  stopPolling();
 }

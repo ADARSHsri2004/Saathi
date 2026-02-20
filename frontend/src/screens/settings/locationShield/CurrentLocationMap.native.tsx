@@ -29,9 +29,6 @@ export function CurrentLocationMap({
   draftRadius,
   onMapPress,
 }: CurrentLocationMapProps) {
-  const webViewRef = useRef<WebView>(null);
-  const lastInjectedLocation = useRef<{ latitude: number; longitude: number } | null>(null);
-
   if (Platform.OS === 'android') {
     if (!location) {
       return (
@@ -44,7 +41,6 @@ export function CurrentLocationMap({
     const html = buildLeafletMapHtml(location, zones, draftCenter, draftRadius);
     return (
       <WebView
-        ref={webViewRef}
         source={{ html }}
         style={styles.map}
         scrollEnabled={false}
@@ -62,18 +58,6 @@ export function CurrentLocationMap({
       />
     );
   }
-
-  useEffect(() => {
-    if (Platform.OS !== 'android' || !location) return;
-    const prev = lastInjectedLocation.current;
-    if (prev && prev.latitude === location.latitude && prev.longitude === location.longitude) return;
-    lastInjectedLocation.current = location;
-    const script = `window.updateUserLocation && window.updateUserLocation(${location.latitude}, ${location.longitude});`;
-    const t = setTimeout(() => {
-      webViewRef.current?.injectJavaScript(script);
-    }, 100);
-    return () => clearTimeout(t);
-  }, [location?.latitude, location?.longitude]);
 
   const mapRef = useRef<MapView>(null);
   const prevCenter = useRef<{ latitude: number; longitude: number } | null>(null);
@@ -107,10 +91,16 @@ export function CurrentLocationMap({
       style={styles.map}
       initialRegion={region}
       showsUserLocation
-      followsUserLocation
       showsMyLocationButton
       onPress={onMapPress ? (e) => onMapPress(e.nativeEvent.coordinate) : undefined}
     >
+      {location && (
+        <Marker
+          coordinate={location}
+          title="You are here"
+          pinColor={colors.accent}
+        />
+      )}
       {zones.map((zone) => (
         <React.Fragment key={zone.id}>
           <Marker

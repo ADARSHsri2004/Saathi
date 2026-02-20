@@ -53,17 +53,13 @@ export function buildLeafletMapHtml(
 
     var bounds = [];
 
-    var youMarker = null;
     if (locationCoords) {
-      youMarker = L.marker([locationCoords[0], locationCoords[1]])
+      var you = L.marker([locationCoords[0], locationCoords[1]])
         .addTo(map)
         .bindPopup('You are here');
-      youMarker._icon && youMarker._icon.classList.add('you');
+      you._icon && you._icon.classList.add('you');
       bounds.push([locationCoords[0], locationCoords[1]]);
     }
-    window.updateUserLocation = function(lat, lng) {
-      if (youMarker) youMarker.setLatLng([lat, lng]);
-    };
 
     zones.forEach(function(z) {
       var m = L.marker([z.latitude, z.longitude], { icon: L.divIcon({

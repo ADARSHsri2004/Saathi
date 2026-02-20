@@ -34,9 +34,6 @@ export class LocationShieldController {
     }
   }
 
-  static readonly MIN_RADIUS_M = 5;
-  static readonly MAX_RADIUS_M = 500;
-
   static async saveZones(
     req: Request<{ userId: string }, {}, { zones: RiskZoneBody[] }>,
     res: Response
@@ -46,15 +43,6 @@ export class LocationShieldController {
       const { zones } = req.body;
       if (!Array.isArray(zones)) {
         return res.status(400).json({ success: false, error: 'zones must be an array' });
-      }
-      for (const z of zones) {
-        const r = Number(z.radius);
-        if (!Number.isFinite(r) || r < LocationShieldController.MIN_RADIUS_M || r > LocationShieldController.MAX_RADIUS_M) {
-          return res.status(400).json({
-            success: false,
-            error: `radius must be between ${LocationShieldController.MIN_RADIUS_M} and ${LocationShieldController.MAX_RADIUS_M} meters`,
-          });
-        }
       }
       await prisma.riskZone.deleteMany({ where: { userId } });
       if (zones.length > 0) {
