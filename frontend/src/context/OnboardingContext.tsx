@@ -117,8 +117,15 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const loadOnboardingStatus = async () => {
       try {
+        // Load onboarding complete status
         const stored = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
         setIsOnboardingComplete(stored === 'true');
+        
+        // Load userId from storage
+        const storedUserId = await AsyncStorage.getItem(USER_ID_KEY);
+        if (storedUserId) {
+          setState((s) => ({ ...s, userId: storedUserId }));
+        }
       } catch (err) {
         console.error('Failed to load onboarding status:', err);
       } finally {

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, RiskZone } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -21,7 +21,7 @@ export class LocationShieldController {
       });
       return res.status(200).json({
         success: true,
-        data: zones.map((z) => ({
+        data: zones.map((z: RiskZone) => ({
           id: z.id,
           latitude: z.latitude,
           longitude: z.longitude,
@@ -48,7 +48,7 @@ export class LocationShieldController {
       await prisma.riskZone.deleteMany({ where: { userId } });
       if (zones.length > 0) {
         await prisma.riskZone.createMany({
-          data: zones.map((z) => ({
+          data: zones.map((z: RiskZoneBody) => ({
             userId,
             latitude: z.latitude,
             longitude: z.longitude,
@@ -63,7 +63,7 @@ export class LocationShieldController {
       });
       return res.status(200).json({
         success: true,
-        data: updated.map((z) => ({
+        data: updated.map((z: RiskZone) => ({
           id: z.id,
           latitude: z.latitude,
           longitude: z.longitude,

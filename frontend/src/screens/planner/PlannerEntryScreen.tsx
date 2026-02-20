@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { PlannerStackParamList } from '../../navigation/PlannerStack';
 import Animated, {
@@ -18,6 +18,8 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { BottomNav } from '../../components/BottomNav';
 import type { BottomNavKey } from '../../components/BottomNav';
 import { NeuralOrb } from '../../components/planner/NeuralOrb';
+import { usePlannerAssessment } from '../../context/PlannerAssessmentContext';
+import { useOnboarding } from '../../context/OnboardingContext';
 import { colors, typography, spacing } from '../../theme';
 
 type NavProp = NativeStackNavigationProp<PlannerStackParamList, 'PlannerEntry'>;
@@ -26,6 +28,8 @@ export function PlannerEntryScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavProp>();
   const parentNav = navigation.getParent();
+  const { recoveryPlan, refreshPlanIfStale, isFetchingPlan, isPlanHydrating, planError } = usePlannerAssessment();
+  const { state: onboardingState, isHydrating } = useOnboarding();
   const orbOpacity = useSharedValue(0);
   const titleOpacity = useSharedValue(0);
   const subOpacity = useSharedValue(0);
@@ -46,6 +50,20 @@ export function PlannerEntryScreen() {
       true
     );
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (isHydrating || !onboardingState.userId) return;
+      refreshPlanIfStale(onboardingState.userId);
+    }, [isHydrating, onboardingState.userId, refreshPlanIfStale])
+  );
+
+  useEffect(() => {
+    if (isPlanHydrating || isFetchingPlan) return;
+    if (recoveryPlan) {
+      navigation.replace('PlannerReveal');
+    }
+  }, [isFetchingPlan, isPlanHydrating, navigation, recoveryPlan]);
 
   const orbStyle = useAnimatedStyle(() => ({ opacity: orbOpacity.value }));
   const titleStyle = useAnimatedStyle(() => ({
@@ -86,13 +104,25 @@ export function PlannerEntryScreen() {
           A personalized plan powered by AI, designed around your habits and triggers.
         </Animated.Text>
         <Animated.View style={[styles.ctaWrap, ctaStyle]}>
-          <PrimaryButton
-            label="Start Quick Assessment"
-            onPress={() => navigation.navigate('Assessment')}
-            pulse
-            showArrow={true}
-          />
-          <Text style={styles.xpHint}>+10 XP for taking the first step</Text>
+          {isPlanHydrating || isFetchingPlan ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator size="small" color={colors.accent} />
+              <Text style={styles.loadingText}>Loading your plan...</Text>
+            </View>
+          ) : (
+            <>
+              <PrimaryButton
+                label="Start Quick Assessment"
+                onPress={() => navigation.navigate('Assessment')}
+                pulse
+                showArrow={true}
+              />
+              <Text style={styles.xpHint}>+10 XP for taking the first step</Text>
+            </>
+          )}
+          {!!planError && !isPlanHydrating && !isFetchingPlan && (
+            <Text style={styles.errorText}>{planError}</Text>
+          )}
         </Animated.View>
       </View>
       <BottomNav
@@ -135,11 +165,27 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 320,
     alignItems: 'center',
+    gap: spacing.md,
   },
   xpHint: {
     ...typography.caption,
     color: colors.milestone,
     marginTop: spacing.md,
     fontWeight: '500',
+    textAlign: 'center',
+  },
+  loadingWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  loadingText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  errorText: {
+    ...typography.bodySmall,
+    color: colors.error,
+    textAlign: 'center',
   },
 });
