@@ -1,10 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useDerivedValue,
   withTiming,
   interpolate,
+  runOnJS,
   SharedValue,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,19 +32,22 @@ export function MoneySavedCard({
   const coinFloat = useSharedValue(0);
   const smallScreen = isSmallScreen();
 
+  const [displayAmount, setDisplayAmount] = useState(0);
+
   useEffect(() => {
     animatedAmount.value = withTiming(amount, { duration: 2000 });
     coinFloat.value = withTiming(1, { duration: 2000 });
-  }, [amount, goal]);
+  }, [amount]);
+
+  // ✅ Bridge animated value to React state
+  useDerivedValue(() => {
+    runOnJS(setDisplayAmount)(animatedAmount.value);
+  });
 
   const coinFloatStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        translateY: interpolate(
-          coinFloat.value,
-          [0, 1],
-          [0, -8]
-        ),
+        translateY: interpolate(coinFloat.value, [0, 1], [0, -8]),
       },
     ],
   }));
@@ -63,16 +68,23 @@ export function MoneySavedCard({
         <View style={styles.content}>
           <View style={styles.amountSection}>
             <Text style={styles.label}>Money Saved</Text>
-            <Animated.Text style={[styles.amount, { fontSize: smallScreen ? scaleFont(30) : scaleFont(36) }]}>
-              ₹{Math.round(animatedAmount.value).toLocaleString()}
-            </Animated.Text>
+
+            {/* ✅ Now it updates correctly */}
+            <Text
+              style={[
+                styles.amount,
+                { fontSize: smallScreen ? scaleFont(30) : scaleFont(36) },
+              ]}
+            >
+              ₹{Math.round(displayAmount).toLocaleString()}
+            </Text>
           </View>
 
           <Animated.View style={[styles.coinStack, coinFloatStyle]}>
-            <MaterialCommunityIcons 
-              name="currency-usd" 
-              size={smallScreen ? scaleSize(40) : scaleSize(48)} 
-              color="#FFD700" 
+            <MaterialCommunityIcons
+              name="currency-usd"
+              size={smallScreen ? scaleSize(40) : scaleSize(48)}
+              color="#FFD700"
             />
             <MaterialCommunityIcons
               name="currency-usd"
@@ -98,7 +110,9 @@ export function MoneySavedCard({
             progressValueColor="#FFFFFF"
             activeStrokeColor="#FFFFFF"
             inActiveStrokeColor="rgba(255,255,255,0.3)"
-            progressFormatter={(v) => `${goal > 0 ? Math.round((amount / goal) * 100) : 0}%`}
+            progressFormatter={() =>
+              `${goal > 0 ? Math.round((amount / goal) * 100) : 0}%`
+            }
             showProgressValue={true}
           />
           <View style={styles.goalTextContainer}>

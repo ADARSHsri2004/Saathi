@@ -55,6 +55,7 @@ export function RewardsScreen() {
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
   const [badgeSheetVisible, setBadgeSheetVisible] = useState(false);
 
+
   const fetchRewards = useCallback(async () => {
     const userId = await AsyncStorage.getItem(USER_ID_KEY);
     if (!userId) {
@@ -68,6 +69,7 @@ export function RewardsScreen() {
     try {
       const rewardsData = await RewardsApi.getRewards(userId);
       setData(rewardsData);
+      console.log("rewards",rewardsData);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load rewards');
       setData(null);
@@ -155,6 +157,7 @@ export function RewardsScreen() {
   }
 
   const { moneySaved, badges, rewards, weeklyGrowth } = data;
+  console.log(moneySaved)
 
   return (
     <View style={styles.screen}>
