@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import { ProfileApi, type ProfileResponse } from '../services/api';
 import { colors, spacing, typography } from '../theme';
+import { useOnboarding } from '../context/OnboardingContext';
 import {
   HeroCard,
   StreakCircle,
@@ -62,10 +63,12 @@ function getDominantMood(moodStats: ProfileResponse['moodStats'] | null | undefi
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavProp>();
+  const { state: onboardingState } = useOnboarding();
   const [data, setData] = useState<ProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async (isRefresh = false) => {
     const userId = await AsyncStorage.getItem(USER_ID_KEY);
@@ -75,6 +78,7 @@ export function ProfileScreen() {
       setLoading(false);
       return;
     }
+    setUserId(userId);
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     setError(null);
@@ -184,6 +188,7 @@ export function ProfileScreen() {
         <View style={styles.gradientBg}>
           <HeroCard
             username={(data.displayName && data.displayName.trim()) || (data.username && data.username.trim()) || 'You'}
+            userId={onboardingState.userId || userId || undefined}
             level={typeof data.level === 'number' ? data.level : 1}
             xpPoints={typeof data.xpPoints === 'number' ? data.xpPoints : 0}
             xpToNextLevel={typeof data.xpToNextLevel === 'number' ? data.xpToNextLevel : 500}

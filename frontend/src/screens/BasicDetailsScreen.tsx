@@ -72,8 +72,8 @@ import type { OnboardingStackParamList } from '../navigation/OnboardingStack';
           try {
             await CompanionApi.getPatientDashboard(trimmedPatientId);
           } catch (e) {
-            console.error('Patient validation failed:', e);
-            Alert.alert('Invalid Patient ID', 'Could not find patient data for the provided ID. Please verify the patient ID and try again.');
+            console.error('User validation failed:', e);
+            Alert.alert('Invalid User ID', 'Could not find patient data for the provided ID. Please verify the patient ID and try again.');
             return;
           }
         }
@@ -139,7 +139,7 @@ import type { OnboardingStackParamList } from '../navigation/OnboardingStack';
                   styles.roleButtonText,
                   state.role === 'patient' && styles.roleButtonTextActive,
                 ]}>
-                  👤 Patient
+                  👤 User
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -189,7 +189,7 @@ import type { OnboardingStackParamList } from '../navigation/OnboardingStack';
 
           {state.role === 'companion' && (
             <Animated.View style={[styles.fieldWrap, patientIdStyle]}>
-              <Text style={styles.question}>Patient ID</Text>
+              <Text style={styles.question}>User ID</Text>
               <Text style={styles.helperText}>Ask the patient to share their ID with you</Text>
               <TextInput
                 style={styles.input}

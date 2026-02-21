@@ -16,6 +16,7 @@ import { spacing, typography, borderRadius } from '../../theme';
 
 interface HeroCardProps {
   username: string;
+  userId?: string;
   level: number;
   xpPoints: number;
   xpToNextLevel: number;
@@ -24,6 +25,7 @@ interface HeroCardProps {
 
 export function HeroCard({
   username,
+  userId,
   level,
   xpPoints,
   xpToNextLevel,
@@ -95,6 +97,7 @@ export function HeroCard({
           </View>
         </View>
         <Text style={styles.username}>{username?.trim() || 'You'}</Text>
+        {userId ? <Text style={styles.userId}>ID: {userId}</Text> : null}
         <Animated.View style={[styles.levelBadge, badgeStyle]}>
           <Text style={styles.levelText}>Level {level}</Text>
         </Animated.View>
@@ -154,6 +157,12 @@ const styles = StyleSheet.create({
     ...typography.title,
     fontWeight: '700',
     color: profileColors.text,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  userId: {
+    ...typography.caption,
+    color: 'rgba(255,255,255,0.75)',
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
