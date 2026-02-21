@@ -30,7 +30,7 @@ export class OnboardingController {
         data: {
           displayName,
           age: age ? parseInt(age.toString()) : null,
-          role: role === 'companion' ? 'companion' : 'patient',
+          role: role === 'companion' ? 'companion' : 'user',
         },
       });
 

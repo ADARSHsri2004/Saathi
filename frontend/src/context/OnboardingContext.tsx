@@ -102,9 +102,9 @@ type OnboardingContextValue = {
   setIntention: (v: Intention | null) => void;
   setDuration: (v: Duration | null) => void;
   reset: () => void;
-  createUser: (displayName: string, age?: number, role?: 'patient' | 'companion') => Promise<void>;
+  createUser: (displayName: string, age?: number, role?: 'patient' | 'companion') => Promise<string>;
   saveToBackend: () => Promise<void>;
-  completeOnboarding: () => Promise<void>;
+  completeOnboarding: (userId?: string) => Promise<void>;
   markOnboardingComplete: () => Promise<void>;
 };
 
@@ -112,6 +112,8 @@ const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
 const ONBOARDING_COMPLETE_KEY = 'onboarding_complete';
 const USER_ID_KEY = 'user_id';
+const USER_ROLE_KEY = 'user_role';
+const PATIENT_ID_KEY = 'patient_id';
 
 export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<OnboardingState>(initialState);
@@ -131,6 +133,18 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         const storedUserId = await AsyncStorage.getItem(USER_ID_KEY);
         if (storedUserId) {
           setState((s) => ({ ...s, userId: storedUserId }));
+        }
+
+        // Load user role from storage
+        const storedRole = await AsyncStorage.getItem(USER_ROLE_KEY);
+        if (storedRole && (storedRole === 'patient' || storedRole === 'companion')) {
+          setState((s) => ({ ...s, role: storedRole as 'patient' | 'companion' }));
+        }
+
+        // Load patient ID from storage (for companions)
+        const storedPatientId = await AsyncStorage.getItem(PATIENT_ID_KEY);
+        if (storedPatientId) {
+          setState((s) => ({ ...s, patientId: storedPatientId }));
         }
       } catch (err) {
         console.error('Failed to load onboarding status:', err);
@@ -152,10 +166,30 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const setRole = useCallback((v: 'patient' | 'companion' | null) => {
     setState((s) => ({ ...s, role: v }));
+    // Persist role to storage
+    if (v) {
+      AsyncStorage.setItem(USER_ROLE_KEY, v).catch((err) => {
+        console.error('Failed to persist user role:', err);
+      });
+    } else {
+      AsyncStorage.removeItem(USER_ROLE_KEY).catch((err) => {
+        console.error('Failed to remove user role:', err);
+      });
+    }
   }, []);
 
   const setPatientId = useCallback((v: string) => {
     setState((s) => ({ ...s, patientId: v }));
+    // Persist patientId to storage
+    if (v) {
+      AsyncStorage.setItem(PATIENT_ID_KEY, v).catch((err) => {
+        console.error('Failed to persist patient ID:', err);
+      });
+    } else {
+      AsyncStorage.removeItem(PATIENT_ID_KEY).catch((err) => {
+        console.error('Failed to remove patient ID:', err);
+      });
+    }
   }, []);
 
   const setAddictionTypes = useCallback((v: AddictionType[] | ((prev: AddictionType[]) => AddictionType[])) => {
@@ -204,6 +238,12 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     AsyncStorage.removeItem(ONBOARDING_COMPLETE_KEY).catch((err) => {
       console.error('Failed to reset onboarding status:', err);
     });
+    AsyncStorage.removeItem(USER_ROLE_KEY).catch((err) => {
+      console.error('Failed to reset user role:', err);
+    });
+    AsyncStorage.removeItem(PATIENT_ID_KEY).catch((err) => {
+      console.error('Failed to reset patient ID:', err);
+    });
   }, []);
 
   const createUser = useCallback(
@@ -212,13 +252,24 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       setError(null);
       try {
         const response = await OnboardingApi.createUser(displayName, age, role);
+        const finalRole = role || 'patient';
+        const userId = response.id;
+        
+        // Update state immediately
         setState((s) => ({
           ...s,
-          userId: response.id,
+          userId,
           displayName: response.displayName,
           age: response.age ? response.age.toString() : '',
-          role: role || 'patient',
+          role: finalRole,
         }));
+        
+        // Persist role and userId to storage
+        await AsyncStorage.setItem(USER_ROLE_KEY, finalRole);
+        await AsyncStorage.setItem(USER_ID_KEY, userId);
+        
+        // Return userId for immediate use (especially important for companions)
+        return userId;
       } catch (err: any) {
         const errorMessage = err.message || 'Failed to create user';
         setError(errorMessage);
@@ -275,15 +326,16 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     }
   }, [state]);
 
-  const completeOnboarding = useCallback(async () => {
-    if (!state.userId) {
+  const completeOnboarding = useCallback(async (userId?: string) => {
+    const userIdToUse = userId || state.userId;
+    if (!userIdToUse) {
       throw new Error('User ID is not set.');
     }
     setIsLoading(true);
     setError(null);
     try {
-      await OnboardingApi.completeOnboarding(state.userId);
-      await AsyncStorage.setItem(USER_ID_KEY, state.userId);
+      await OnboardingApi.completeOnboarding(userIdToUse);
+      await AsyncStorage.setItem(USER_ID_KEY, userIdToUse);
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to complete onboarding';
       setError(errorMessage);

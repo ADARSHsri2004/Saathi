@@ -119,7 +119,7 @@ export class PlanController {
         planInput,
         {
           headers: { 'Content-Type': 'application/json' },
-          timeout: 60000, // 60 second timeout
+          timeout: 180000, // 60 second timeout
         }
       );
 
@@ -328,7 +328,7 @@ export class PlanController {
         updateInput,
         {
           headers: { 'Content-Type': 'application/json' },
-          timeout: 60000,
+          timeout: 180000,
         }
       );
 

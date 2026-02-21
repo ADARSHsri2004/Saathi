@@ -65,11 +65,12 @@ import type { OnboardingStackParamList } from '../navigation/OnboardingStack';
     
       try {
         const age = state.age ? parseInt(state.age) : undefined;
+        const trimmedPatientId = state.patientId.trim();
 
         // If companion, validate patientId exists and has onboarding data before creating the companion user
         if (state.role === 'companion') {
           try {
-            await CompanionApi.getPatientDashboard(state.patientId.trim());
+            await CompanionApi.getPatientDashboard(trimmedPatientId);
           } catch (e) {
             console.error('Patient validation failed:', e);
             Alert.alert('Invalid Patient ID', 'Could not find patient data for the provided ID. Please verify the patient ID and try again.');
@@ -77,12 +78,17 @@ import type { OnboardingStackParamList } from '../navigation/OnboardingStack';
           }
         }
 
-        await createUser(state.displayName, age, state.role || 'patient');
+        // Create user and get the userId back
+        const userId = await createUser(state.displayName, age, state.role || 'patient');
       
         // Companions skip rest of onboarding and go directly to dashboard
         if (state.role === 'companion') {
-          await saveToBackend();
-          await completeOnboarding();
+          // Explicitly set and persist patientId for companion
+          setPatientId(trimmedPatientId);
+          
+          // Companions don't need to save onboarding data, just complete onboarding
+          // Pass userId directly to avoid async state update timing issues
+          await completeOnboarding(userId);
           await markOnboardingComplete();
         } else {
           navigation.navigate('AwarenessContext');
