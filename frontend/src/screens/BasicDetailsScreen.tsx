@@ -13,12 +13,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming,
-    withDelay,
-} from 'react-native-reanimated';
+import Animated, {useAnimatedStyle, useSharedValue, withTiming, withDelay} from 'react-native-reanimated';
+
+
 import { PrimaryButton, ProgressIndicator } from '../components/index';
 import { CompanionApi } from '../services/api';
 import { useOnboarding } from '../context/OnboardingContext';

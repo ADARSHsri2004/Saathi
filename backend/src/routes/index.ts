@@ -29,10 +29,7 @@ router.post('/users/:userId/dashboard/relapse', DashboardController.recordRelaps
 
 router.get("/users/:userId/chat/history", ChatController.getChatHistory);
 router.get("/users/:userId/assistant/context", ChatController.getAssistantContext);
-router.post(
-  "/users/:userId/chat",
-  ChatController.chatWithBot
-);
+router.post("/users/:userId/chat", ChatController.chatWithBot);
 
 router.get('/users/:userId/rewards', RewardsController.getRewards);
 router.get('/users/:userId/profile', ProfileController.getProfile);
