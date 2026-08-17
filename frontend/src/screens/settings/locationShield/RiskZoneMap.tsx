@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { Feather } from '@expo/vector-icons';
-import { CurrentLocationMap } from './CurrentLocationMap';
+import { CurrentLocationMap } from './CurrentLocationMap.web';
 import { ShieldOrb } from './ShieldOrb';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { AppSlider } from '../../../components/AppSlider';

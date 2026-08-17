@@ -455,7 +455,7 @@ export function HomeDashboardScreen() {
                 )}
               </Pressable>
             </View>
-          </Animated.View>
+          </Animated.View>n
         </Animated.View>
       </Modal>
 
